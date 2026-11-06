@@ -292,6 +292,10 @@ export function zoneStats() {
 // ---------------------------------------------------------------- aisstream.io
 export function startAIS(apiKey) {
   apiKey = (apiKey || "").trim(); // pasted keys often carry a trailing space or newline
+  if (apiKey && !/^[0-9a-f]{40}$/i.test(apiKey)) {
+    log("ais", `AISSTREAM_API_KEY doesn't look like an aisstream key (expected 40 hex characters, got ${apiKey.length} characters)`);
+    aisStatus.error = "AISSTREAM_API_KEY looks wrong: paste only the 40-character key";
+  }
   if (!apiKey) { aisStatus.mode = "offline"; aisStatus.error = "No AISSTREAM_API_KEY set"; return; }
   aisStatus.mode = "live";
   // One-off diagnostic: what does the AIS endpoint answer over plain HTTPS from this host? (blocks show up as 403s)
@@ -304,7 +308,7 @@ export function startAIS(apiKey) {
     const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
     ws.onopen = () => {
       log("ais", "connected; subscribing to " + Object.keys(ZONES).join(", "));
-      backoff = 2000;
+      // Backoff resets only once data actually flows (see onmessage); a rejected key would otherwise loop every 2 s
       aisStatus.connected = true; aisStatus.error = null;
       bus.emit("status");
       ws.send(JSON.stringify({
@@ -318,6 +322,7 @@ export function startAIS(apiKey) {
       let m; try { m = JSON.parse(raw); } catch { return; }
       if (m.error) { aisStatus.error = m.error; log("ais", "server error:", m.error); return; }
       aisStatus.messages++; aisStatus.lastMessage = Date.now();
+      backoff = 2000;
       const md = m.MetaData || {};
       const mmsi = md.MMSI;
       if (!mmsi) return;
