@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<!-- Copyright (c) 2026 Mohammadamin Zare, University College London. All rights reserved. See LICENSE. -->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="author" content="Mohammadamin Zare, University College London" />
+  <meta name="copyright" content="© 2026 Mohammadamin Zare, University College London. All rights reserved." />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gower Street Terminal — Hormuz / Bab el-Mandeb</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand"><span class="logo">◆</span> GOWER STREET TERMINAL <span class="sub">HORMUZ · BAB EL-MANDEB · ENERGY</span></div>
+    <div id="demo-banner" hidden>SIMULATED AIS — NOT REAL VESSELS</div>
+    <div id="feeds"></div>
+    <div class="right">
+      <label class="tog"><input type="checkbox" id="tankers-only" checked /> TANKERS ONLY</label>
+      <label class="tog"><input type="checkbox" id="sound" /> SOUND</label>
+      <span id="clock">--:--:-- UTC</span>
+    </div>
+  </header>
+
+  <section id="clockbar">
+    <div id="clocks"></div>
+    <div id="tools">
+      <button data-open="flows" title="Daily transits through each chokepoint (IMF PortWatch + this terminal's own counts)">⛴ FLOWS</button>
+      <button data-open="curve" title="Brent & WTI futures curves and spreads">〰 CURVE</button>
+      <button data-open="scenario" title="What-if disruption calculator">⚠ SCENARIO</button>
+      <button data-open="settings" title="Phone alerts and data sources">⚙ ALERTS</button>
+    </div>
+  </section>
+
+  <section id="ticker"></section>
+  <section id="spreads" title="Click for the full futures curve"></section>
+
+  <main id="grid">
+    <section class="panel map-panel" id="p-hormuz" data-zones="HORMUZ,SUEZ">
+      <div class="ph">
+        <span class="filters zone-tabs"><button data-z="HORMUZ" class="on">STRAIT OF HORMUZ</button><button data-z="SUEZ">SUEZ</button></span>
+        <span class="stats"></span>
+        <button class="replay-btn" title="Play back the last 24 hours">⟲ REPLAY</button>
+      </div>
+      <div class="maps"><div class="map" id="map-HORMUZ"></div><div class="map" id="map-SUEZ" hidden></div></div>
+      <div class="replay-bar" hidden></div>
+    </section>
+    <section class="panel map-panel" id="p-bab" data-zones="BAB,CAPE">
+      <div class="ph">
+        <span class="filters zone-tabs"><button data-z="BAB" class="on">BAB EL-MANDEB</button><button data-z="CAPE">CAPE OF GOOD HOPE</button></span>
+        <span class="stats"></span>
+        <button class="replay-btn" title="Play back the last 24 hours">⟲ REPLAY</button>
+      </div>
+      <div class="maps"><div class="map" id="map-BAB"></div><div class="map" id="map-CAPE" hidden></div></div>
+      <div class="replay-bar" hidden></div>
+    </section>
+
+    <section class="panel" id="p-alerts">
+      <div class="ph"><span class="t">INCIDENT ALERTS <span class="live">● LIVE</span></span><span class="cnt" id="alert-count"></span></div>
+      <div class="list" id="alerts"></div>
+    </section>
+
+    <section class="panel" id="p-analyst">
+      <div class="ph"><span class="t">AI DESK ANALYST</span>
+        <span class="filters" id="an-tabs"><button data-t="brief" class="on">BRIEF</button><button data-t="ask">ASK</button></span>
+        <button id="run-analyst">RUN NOW</button>
+      </div>
+      <div class="body" id="analyst"></div>
+      <div class="ask-pane" id="ask" hidden>
+        <div class="ask-log" id="ask-log"></div>
+        <form id="ask-form"><input id="ask-input" autocomplete="off" placeholder="Ask about the live picture… e.g. Why did Brent drop at 14:00?" /><button>ASK</button></form>
+      </div>
+    </section>
+
+    <section class="panel" id="p-news">
+      <div class="ph"><span class="t">NEWS WIRE</span>
+        <span class="filters" data-target="news">
+          <button data-f="ALL" class="on">ALL</button><button data-f="HORMUZ">HORMUZ</button><button data-f="BAB">RED SEA</button><button data-f="INCIDENT">INCIDENTS</button>
+        </span>
+      </div>
+      <div class="list" id="news"></div>
+    </section>
+
+    <section class="panel" id="p-official">
+      <div class="ph"><span class="t">OFFICIAL STATEMENTS</span>
+        <span class="filters" data-target="official">
+          <button data-f="ALL" class="on">ALL</button><button data-f="US">US</button><button data-f="IRAN">IRAN</button><button data-f="HOUTHI">HOUTHI</button><button data-f="GULF">GULF</button><button data-f="UK">UK/UN</button>
+        </span>
+      </div>
+      <div class="list" id="official"></div>
+    </section>
+
+    <section class="panel" id="p-social">
+      <div class="ph"><span class="t">SOCIAL CHATTER <span class="muted">unverified</span></span>
+        <span class="filters" data-target="social">
+          <button data-f="ALL" class="on">ALL</button><button data-f="X">X</button><button data-f="Bluesky">BSKY</button><button data-f="Reddit">REDDIT</button><button data-f="Telegram">TG</button>
+        </span>
+      </div>
+      <div class="list" id="social"></div>
+    </section>
+  </main>
+
+  <footer id="footer">
+    <span>© 2026 Mohammadamin Zare · University College London · All rights reserved</span>
+    <span class="muted">Delayed, unverified third-party data and AI analysis · not investment advice · third-party content © its respective owners</span>
+  </footer>
+
+  <div id="flash"></div>
+
+  <!-- Generic tool window (flows / curve / scenario / alert settings) -->
+  <div id="tool-modal" class="overlay" hidden>
+    <div class="tm-box" role="dialog" aria-modal="true" aria-labelledby="tm-title">
+      <div class="cm-head"><div><div id="tm-title" class="cm-title"></div><div id="tm-sub" class="cm-sub"></div></div><button id="tm-close" title="Close (Esc)">✕</button></div>
+      <div id="tm-body" class="tm-body"></div>
+    </div>
+  </div>
+
+  <div id="chart-modal" hidden>
+    <div class="cm-box" role="dialog" aria-modal="true" aria-labelledby="cm-title">
+      <div class="cm-head">
+        <div>
+          <div id="cm-title" class="cm-title"></div>
+          <div id="cm-sub" class="cm-sub"></div>
+        </div>
+        <div id="cm-quote" class="cm-quote"></div>
+        <button id="cm-close" title="Close (Esc)">✕</button>
+      </div>
+      <div class="cm-controls">
+        <span class="filters" id="cm-range">
+          <button data-r="1d" class="on">1D</button><button data-r="5d">5D</button><button data-r="1mo">1M</button><button data-r="6mo">6M</button><button data-r="1y">1Y</button><button data-r="5y">5Y</button>
+        </span>
+        <span class="filters" id="cm-type"><button data-t="candle" class="on">CANDLES</button><button data-t="line">LINE</button></span>
+        <label class="tog"><input type="checkbox" id="cm-events" checked /> EVENT MARKERS</label>
+        <span id="cm-readout" class="cm-readout"></span>
+      </div>
+      <div class="cm-body">
+        <div class="cm-chartwrap"><div id="cm-chart"></div><div id="cm-msg" class="cm-msg"></div></div>
+        <aside class="cm-side">
+          <div class="sec">STATISTICS</div>
+          <table id="cm-stats" class="cm-stats"></table>
+          <div class="sec">EVENTS IN THIS WINDOW</div>
+          <div id="cm-events-list" class="cm-events"></div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <script src="/app.js"></script>
+  <script src="/chart.js"></script>
+  <script src="/tools.js"></script>
+  <script src="/replay.js"></script>
+</body>
+</html>
