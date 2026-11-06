@@ -294,6 +294,10 @@ export function startAIS(apiKey) {
   apiKey = (apiKey || "").trim(); // pasted keys often carry a trailing space or newline
   if (!apiKey) { aisStatus.mode = "offline"; aisStatus.error = "No AISSTREAM_API_KEY set"; return; }
   aisStatus.mode = "live";
+  // One-off diagnostic: what does the AIS endpoint answer over plain HTTPS from this host? (blocks show up as 403s)
+  fetch("https://stream.aisstream.io/v0/stream", { headers: { "User-Agent": "GowerStreetTerminal/0.1" } })
+    .then(async (r) => log("ais", `endpoint check: HTTP ${r.status} ${r.headers.get("server") || ""} ${(await r.text()).slice(0, 120).replace(/\s+/g, " ")}`))
+    .catch((e) => log("ais", `endpoint check failed: ${e.cause?.code || e.message}`));
   let backoff = 2000;
   const connect = () => {
     log("ais", "connecting to aisstream.io");
