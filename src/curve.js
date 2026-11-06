@@ -81,6 +81,8 @@ async function poll() {
     bus.emit("curve", curve);
     // Alerts on sharp daily moves in the key spreads
     for (const [k, sp] of Object.entries(curve.spreads)) {
+      // Deferred months (M12) trade thinly and their day-on-day changes are noisy, so only alert on liquid spreads
+      if (!["brentM1M2", "brentM1M6", "brentWti", "crack321"].includes(k)) continue;
       const thr = k === "crack321" ? 3 : k === "brentM1M2" ? 0.75 : 1.5;
       if (sp.change != null && Math.abs(sp.change) >= thr) {
         const day = new Date().toDateString();
