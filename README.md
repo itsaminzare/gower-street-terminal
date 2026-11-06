@@ -32,7 +32,17 @@ npm start
 
 Open http://localhost:8787. To try the UI without an AIS key, `npm run demo` runs clearly-labelled **simulated** vessels (news, social and prices stay real).
 
-## Put it online (Render)
+## Put it online for free (Hugging Face Spaces)
+
+The `Dockerfile` runs the terminal on a free Hugging Face CPU Space (no card; it sleeps only after 48 hours without visitors) with the AI analyst on **Claude Haiku 5.5** and the cost limits below.
+
+1. Create a Space: **Docker** SDK, **Blank** template, **CPU basic (free)**, public.
+2. In the Space's **Settings → Variables and secrets**, add secrets `AISSTREAM_API_KEY`, `ANTHROPIC_API_KEY` and (optionally) `NTFY_TOPIC`.
+3. Publish the committed code: `.\deploy\push-to-hf.ps1 -Space <user>/<space>` (asks for a Hugging Face access token with write permission as the password).
+
+Approximate AI cost on Haiku 5.5 with these limits: about $0.004 per brief and $0.003 per chat question, so a few dollars a month at most. Set a monthly limit in the Anthropic console as a hard cap.
+
+## Put it online (Render, paid always-on)
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/itsaminzare/gower-street-terminal)
 
@@ -40,6 +50,7 @@ Open http://localhost:8787. To try the UI without an AIS key, `npm run demo` run
 
 | Setting | Default | Meaning |
 |---|---|---|
+| `ANALYST_MODEL` | `claude-opus-5-5` (Docker: `claude-haiku-5-5`) | Claude model for briefs and chat |
 | `ANALYST_INTERVAL_MIN` | 60 | Minutes between scheduled AI briefs |
 | `ANALYST_DAILY_MAX` | 30 | Max AI briefs per day from all triggers |
 | `ANALYST_ALERT_DEBOUNCE_MIN` | 20 | Min gap before a critical alert triggers another brief |

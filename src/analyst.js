@@ -88,6 +88,13 @@ function snapshot() {
 }
 
 let client;
+// Model is configurable (ANALYST_MODEL). Opus 5.5 by default; Haiku 5.5 is ~40x cheaper for a public deployment.
+let MODEL = "claude-opus-5-5";
+// Opus/Sonnet get server-side refusal fallbacks (beta); Haiku 5.5 has no server-side fallback, so it uses the plain endpoint.
+function streamRequest(params) {
+  if (/haiku/.test(MODEL)) return client.messages.stream({ model: MODEL, ...params });
+  return client.beta.messages.stream({ model: MODEL, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", ...params });
+}
 // Daily budget for briefs (all triggers combined), so a public deployment's Claude bill stays bounded
 const runs = { day: "", count: 0, max: Infinity };
 export async function runAnalyst(reason = "scheduled") {
@@ -99,11 +106,8 @@ export async function runAnalyst(reason = "scheduled") {
   analyst.running = true; analyst.error = null;
   bus.emit("analyst", analyst);
   try {
-    const stream = client.beta.messages.stream({
-      model: "claude-opus-5-5",
+    const stream = streamRequest({
       max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
       output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } },
       system: SYSTEM,
       messages: [{ role: "user", content: `Trigger: ${reason}.\n\nLive desk snapshot:\n${snapshot()}` }],
@@ -151,11 +155,8 @@ export async function ask(question, history, onText) {
     ...history.slice(-10).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content).slice(0, 6000) })),
     { role: "user", content: `Live desk snapshot (${new Date().toISOString()}):\n${snap}\n\nBrent front-month intraday, 15-min closes (UTC): ${JSON.stringify(brent)}\n\nQuestion: ${question}` },
   ];
-  const stream = client.beta.messages.stream({
-    model: "claude-opus-5-5",
+  const stream = streamRequest({
     max_tokens: 8000,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
     output_config: { effort: "medium" },
     system: ASK_SYSTEM,
     messages: msgs,
@@ -169,7 +170,10 @@ export async function ask(question, history, onText) {
 export function startAnalyst(env) {
   if (!env.ANTHROPIC_API_KEY) { analyst.error = "Set ANTHROPIC_API_KEY to enable the AI analyst"; return; }
   client = new Anthropic();
+  if (env.ANALYST_MODEL) MODEL = env.ANALYST_MODEL.trim();
   analyst.enabled = true;
+  analyst.model = MODEL;
+  log("analyst", `using ${MODEL}`);
   const minutes = Math.max(5, Number(env.ANALYST_INTERVAL_MIN) || 15);
   if (Number(env.ANALYST_DAILY_MAX) > 0) runs.max = Number(env.ANALYST_DAILY_MAX);
   const debounceMs = Math.max(1, Number(env.ANALYST_ALERT_DEBOUNCE_MIN) || 5) * 60_000;
