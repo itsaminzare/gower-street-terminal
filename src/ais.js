@@ -291,6 +291,7 @@ export function zoneStats() {
 
 // ---------------------------------------------------------------- aisstream.io
 export function startAIS(apiKey) {
+  apiKey = (apiKey || "").trim(); // pasted keys often carry a trailing space or newline
   if (!apiKey) { aisStatus.mode = "offline"; aisStatus.error = "No AISSTREAM_API_KEY set"; return; }
   aisStatus.mode = "live";
   let backoff = 2000;
@@ -298,6 +299,7 @@ export function startAIS(apiKey) {
     log("ais", "connecting to aisstream.io");
     const ws = new WebSocket("wss://stream.aisstream.io/v0/stream");
     ws.onopen = () => {
+      log("ais", "connected; subscribing to " + Object.keys(ZONES).join(", "));
       backoff = 2000;
       aisStatus.connected = true; aisStatus.error = null;
       bus.emit("status");
@@ -333,10 +335,11 @@ export function startAIS(apiKey) {
         updateStatic(mmsi, { name: s.ReportA?.Name, type: s.ReportB?.ShipType || null, callsign: s.ReportB?.CallSign });
       }
     };
-    ws.onerror = (e) => { aisStatus.error = e.message || "socket error"; };
-    ws.onclose = () => {
+    ws.onerror = (e) => { aisStatus.error = e.message || e.error?.message || "socket error"; log("ais", "socket error:", e.message || e.error?.message || e.type); };
+    ws.onclose = (e) => {
       aisStatus.connected = false; bus.emit("status");
-      log("ais", `disconnected, retrying in ${backoff / 1000}s`);
+      if (e.reason) aisStatus.error = `closed: ${e.reason}`;
+      log("ais", `disconnected (code ${e.code}${e.reason ? `, "${e.reason}"` : ""}), retrying in ${backoff / 1000}s`);
       setTimeout(connect, backoff);
       backoff = Math.min(backoff * 2, 60000);
     };
