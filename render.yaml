@@ -2,10 +2,12 @@
 # Copyright (c) 2026 Mohammadamin Zare, University College London. All rights reserved.
 services:
   - type: web
-    name: gower-street-terminal
+    name: gower-street-terminal-sg
     runtime: node
     plan: free               # no card needed; 750 free hours/month covers one service running 24/7
-    region: frankfurt        # closest Render region to London
+    # aisstream.io limits connections per source IP, and Render's free instances share outbound IPs.
+    # Frankfurt's shared IP was saturated ("concurrent connections per user exceeded"); Singapore is less busy.
+    region: singapore
     buildCommand: npm ci --omit=dev
     startCommand: node server.js
     healthCheckPath: /api/health
