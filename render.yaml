@@ -1,0 +1,37 @@
+# Render Blueprint for Gower Street Terminal (https://render.com/docs/blueprint-spec)
+# Copyright (c) 2026 Mohammadamin Zare, University College London. All rights reserved.
+services:
+  - type: web
+    name: gower-street-terminal
+    runtime: node
+    plan: starter            # always-on; the free plan sleeps and would drop the live AIS feed
+    region: frankfurt        # closest Render region to London
+    buildCommand: npm ci --omit=dev
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true         # every push to main redeploys
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: HOST
+        value: 0.0.0.0
+      # Secrets: Render asks for these when you create the service. Never commit them.
+      - key: AISSTREAM_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: NTFY_TOPIC
+        sync: false
+      # Cost controls for a public site (raise or lower any time in the Render dashboard)
+      - key: ANALYST_INTERVAL_MIN
+        value: "60"
+      - key: ANALYST_DAILY_MAX
+        value: "30"
+      - key: ANALYST_ALERT_DEBOUNCE_MIN
+        value: "20"
+      - key: ASK_DAILY_LIMIT
+        value: "30"
+      - key: ASK_PER_VISITOR_LIMIT
+        value: "5"
+      - key: MANUAL_RUN_MIN_INTERVAL_MIN
+        value: "15"

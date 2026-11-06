@@ -325,7 +325,14 @@
       ${a.error ? `<div style="color:#ff6b6b">Last run failed: ${esc(a.error)}</div>` : ""}`;
     el.innerHTML = html;
   }
-  $("#run-analyst").addEventListener("click", () => fetch("/api/analyst/run", { method: "POST" }));
+  $("#run-analyst").addEventListener("click", async () => {
+    const r = await fetch("/api/analyst/run", { method: "POST" });
+    if (r.status === 429) {
+      const btn = $("#run-analyst"), msg = (await r.json()).error;
+      btn.textContent = "COOLING DOWN"; btn.title = msg;
+      setTimeout(() => { btn.textContent = "RUN NOW"; btn.title = ""; }, 4000);
+    }
+  });
 
   // ---------------------------------------------------------------- ask the analyst (chat)
   const chat = [];
@@ -334,8 +341,18 @@
     $("#an-tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     const ask = b.dataset.t === "ask";
     $("#analyst").hidden = ask; $("#ask").hidden = !ask; $("#run-analyst").hidden = ask;
-    if (ask) { renderChat(); $("#ask-input").focus(); }
+    if (ask) { renderChat(); refreshQuota(); $("#ask-input").focus(); }
   });
+  // Shared deployments cap chat use; show what's left
+  async function refreshQuota() {
+    try {
+      const q = await fetch("/api/ask/limits").then((r) => r.json());
+      const parts = [];
+      if (q.perVisitorLimit != null) parts.push(`${Math.max(0, q.perVisitorLimit - q.usedByYou)} of ${q.perVisitorLimit} questions left for you today`);
+      if (q.dailyLimit != null) parts.push(`${Math.max(0, q.dailyLimit - q.usedToday)} left for all visitors`);
+      $("#ask-quota").textContent = parts.length ? parts.join(" · ") + " · resets 00:00 UTC" : "";
+    } catch { /* limits are informational only */ }
+  }
   function renderChat() {
     const log = $("#ask-log");
     log.innerHTML = chat.length ? chat.map((m) => `<div class="msg ${m.role}"><div class="who">${m.role === "user" ? "YOU" : "ANALYST"}</div><div class="txt">${esc(m.content)}${m.pending ? '<span class="cursor">▍</span>' : ""}</div></div>`).join("")
@@ -361,8 +378,8 @@
         ans.content += dec.decode(value, { stream: true });
         renderChat();
       }
-    } catch (err) { ans.content += `[Error: ${err.message}]`; }
-    ans.pending = false; renderChat();
+    } catch (err) { ans.content += `[${err.message}]`; }
+    ans.pending = false; renderChat(); refreshQuota();
   });
 
   // ---------------------------------------------------------------- toggles

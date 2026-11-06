@@ -32,6 +32,23 @@ npm start
 
 Open http://localhost:8787. To try the UI without an AIS key, `npm run demo` runs clearly-labelled **simulated** vessels (news, social and prices stay real).
 
+## Put it online (Render)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/itsaminzare/gower-street-terminal)
+
+`render.yaml` defines an always-on web service (Starter plan, ~$7/month) in Frankfurt with public cost limits:
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `ANALYST_INTERVAL_MIN` | 60 | Minutes between scheduled AI briefs |
+| `ANALYST_DAILY_MAX` | 30 | Max AI briefs per day from all triggers |
+| `ANALYST_ALERT_DEBOUNCE_MIN` | 20 | Min gap before a critical alert triggers another brief |
+| `ASK_DAILY_LIMIT` | 30 | Chat questions per day, all visitors combined |
+| `ASK_PER_VISITOR_LIMIT` | 5 | Chat questions per visitor per day |
+| `MANUAL_RUN_MIN_INTERVAL_MIN` | 15 | Cooldown on the RUN NOW button |
+
+Render asks for `AISSTREAM_API_KEY`, `ANTHROPIC_API_KEY` and `NTFY_TOPIC` when you create the service. Every push to `main` redeploys automatically. Saved history and alerts reset when the service restarts (no persistent disk). Test notifications can only be sent from the machine running the server.
+
 ## Keys
 
 Copy `.env.example` to `.env`. Everything is optional; a panel without its key says it's offline rather than showing fake data.

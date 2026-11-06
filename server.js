@@ -25,6 +25,8 @@ const an = await import("./src/analyst.js");
 
 const env = process.env;
 const PORT = Number(env.PORT) || 8787;
+// Locally only this PC can connect; hosting platforms set HOST=0.0.0.0 so the public can reach it
+const HOST = env.HOST || "127.0.0.1";
 
 sanctions.startSanctions();
 if (DEMO) ais.startDemo(); else ais.startAIS(env.AISSTREAM_API_KEY);
@@ -77,9 +79,35 @@ const readBody = (req) => new Promise((ok, fail) => {
   req.on("end", () => { try { ok(JSON.parse(b || "{}")); } catch (e) { fail(e); } });
 });
 
+// ---- Limits for a public deployment (all unlimited unless set in the environment)
+const num = (v, d) => (Number(v) > 0 ? Number(v) : d);
+const LIMITS = {
+  askDaily: num(env.ASK_DAILY_LIMIT, Infinity),        // chat questions per day, all visitors combined
+  askPerVisitor: num(env.ASK_PER_VISITOR_LIMIT, Infinity), // per visitor (IP) per day
+  askConcurrent: num(env.ASK_CONCURRENT_LIMIT, 2),
+  manualRunMin: num(env.MANUAL_RUN_MIN_INTERVAL_MIN, 0), // minimum minutes between RUN NOW presses
+};
+const quota = { day: "", used: 0, perIp: new Map(), active: 0, lastManualRun: 0 };
+function resetQuotaIfNewDay() {
+  const day = new Date().toISOString().slice(0, 10);
+  if (quota.day !== day) Object.assign(quota, { day, used: 0, perIp: new Map() });
+}
+// Behind a hosting proxy the visitor's address is the first X-Forwarded-For entry
+const clientIp = (req) => String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "?";
+const isLocal = (req) => !req.headers["x-forwarded-for"] && ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(req.socket.remoteAddress);
+function askStatus(ip) {
+  resetQuotaIfNewDay();
+  const fin = (n) => (Number.isFinite(n) ? n : null);
+  return { dailyLimit: fin(LIMITS.askDaily), usedToday: quota.used, perVisitorLimit: fin(LIMITS.askPerVisitor),
+    usedByYou: ip ? quota.perIp.get(ip) || 0 : null };
+}
+
 http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://x");
   const p = url.pathname;
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (p === "/api/health") return json(res, 200, { ok: true, ais: ais.aisStatus.mode, uptime: Math.round(process.uptime()) });
+  if (p === "/api/ask/limits") return json(res, 200, askStatus(clientIp(req)));
   if (p === "/api/stream") {
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
     send(res, "snapshot", snapshot());
@@ -105,20 +133,32 @@ http.createServer(async (req, res) => {
         .map((a) => ({ t: Date.parse(a.time), zone: a.zone, lat: a.lat, lon: a.lon, severity: a.severity, title: a.title })) });
   }
   if (p === "/api/analyst/run" && req.method === "POST") {
+    const waitMin = LIMITS.manualRunMin - (Date.now() - quota.lastManualRun) / 60_000;
+    if (waitMin > 0) return json(res, 429, { error: `A brief was requested recently. Try again in ${Math.ceil(waitMin)} min.` });
+    quota.lastManualRun = Date.now();
     an.runAnalyst("manual request from desk");
     return json(res, 202, { enabled: an.analyst.enabled, error: an.analyst.error });
   }
   if (p === "/api/ask" && req.method === "POST") {
     let body;
     try { body = await readBody(req); } catch { return json(res, 400, { error: "bad JSON" }); }
-    const q = String(body.question || "").trim().slice(0, 2000);
+    const q = String(body.question || "").trim().slice(0, 1000);
     if (!q) return json(res, 400, { error: "empty question" });
+    const ip = clientIp(req);
+    resetQuotaIfNewDay();
+    if (quota.used >= LIMITS.askDaily) return json(res, 429, { error: `Today's chat limit (${LIMITS.askDaily} questions for all visitors) has been reached. It resets at 00:00 UTC.` });
+    if ((quota.perIp.get(ip) || 0) >= LIMITS.askPerVisitor) return json(res, 429, { error: `You've used your ${LIMITS.askPerVisitor} questions for today. The limit resets at 00:00 UTC.` });
+    if (quota.active >= LIMITS.askConcurrent) return json(res, 429, { error: "The analyst is answering other questions right now. Try again in a minute." });
+    quota.used++; quota.perIp.set(ip, (quota.perIp.get(ip) || 0) + 1); quota.active++;
     res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-cache", "X-Accel-Buffering": "no" });
-    try { await an.ask(q, Array.isArray(body.history) ? body.history : [], (t) => res.write(t)); }
+    try { await an.ask(q, Array.isArray(body.history) ? body.history.slice(-6) : [], (t) => res.write(t)); }
     catch (e) { res.write(`\n\n[Error: ${e.message}]`); }
+    finally { quota.active--; }
     return res.end();
   }
   if (p === "/api/notify/test" && req.method === "POST") {
+    // Only from the machine itself, so visitors can't spam the owner's phone
+    if (!isLocal(req)) return json(res, 403, { error: "Test notifications can only be sent from the computer running the terminal." });
     if (!nt.notifyStatus.test) return json(res, 400, { error: "No phone alert channel configured. Set TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID or NTFY_TOPIC in .env." });
     await nt.notifyStatus.test();
     return json(res, 200, { sent: true, error: nt.notifyStatus.lastError });
@@ -130,4 +170,5 @@ http.createServer(async (req, res) => {
     res.writeHead(200, { "Content-Type": MIME[path.extname(file)] || "application/octet-stream" });
     res.end(buf);
   });
-}).listen(PORT, "127.0.0.1", () => log("server", `Gower Street Terminal on http://localhost:${PORT}${DEMO ? "  (DEMO AIS)" : ""}`));
+}).listen(PORT, HOST, () => log("server", `Gower Street Terminal on http://${HOST === "127.0.0.1" ? "localhost" : HOST}:${PORT}${DEMO ? "  (DEMO AIS)" : ""}` +
+  (Number.isFinite(LIMITS.askDaily) ? ` · chat limit ${LIMITS.askDaily}/day, ${LIMITS.askPerVisitor}/visitor` : "")));

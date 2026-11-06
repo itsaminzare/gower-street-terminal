@@ -128,6 +128,8 @@ body { display: flex; flex-direction: column; }
 .msg .txt { white-space: pre-wrap; }
 .msg.user .txt { color: #ffd9a8; }
 .cursor { animation: blink 1s infinite; color: var(--amber); }
+.ask-quota { font-size: 10px; color: var(--muted); padding: 0 8px; }
+.ask-quota:empty { display: none; }
 #ask-form { display: flex; gap: 4px; padding: 6px; border-top: 1px solid var(--line); }
 #ask-input { flex: 1; background: #050505; border: 1px solid var(--line); color: var(--text); font: inherit; padding: 4px 6px; }
 #ask-input:focus { outline: 1px solid var(--amber-dim); }

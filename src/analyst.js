@@ -88,8 +88,14 @@ function snapshot() {
 }
 
 let client;
+// Daily budget for briefs (all triggers combined), so a public deployment's Claude bill stays bounded
+const runs = { day: "", count: 0, max: Infinity };
 export async function runAnalyst(reason = "scheduled") {
   if (!analyst.enabled || analyst.running) return;
+  const day = new Date().toISOString().slice(0, 10);
+  if (runs.day !== day) Object.assign(runs, { day, count: 0 });
+  if (runs.count >= runs.max) { log("analyst", `daily brief limit (${runs.max}) reached; skipping "${reason}"`); return; }
+  runs.count++;
   analyst.running = true; analyst.error = null;
   bus.emit("analyst", analyst);
   try {
@@ -165,14 +171,16 @@ export function startAnalyst(env) {
   client = new Anthropic();
   analyst.enabled = true;
   const minutes = Math.max(5, Number(env.ANALYST_INTERVAL_MIN) || 15);
+  if (Number(env.ANALYST_DAILY_MAX) > 0) runs.max = Number(env.ANALYST_DAILY_MAX);
+  const debounceMs = Math.max(1, Number(env.ANALYST_ALERT_DEBOUNCE_MIN) || 5) * 60_000;
   // First brief once feeds have had time to fill
   setTimeout(() => runAnalyst("startup"), 45_000);
   setInterval(() => runAnalyst("scheduled"), minutes * 60_000);
-  // Critical alerts trigger an early re-assessment (debounced to one per 5 min)
+  // Critical alerts trigger an early re-assessment (debounced)
   let last = 0, pending = null;
   bus.on("alert", (a) => {
     if (a.severity !== "critical" || pending) return;
-    const wait = Math.max(20_000, 5 * 60_000 - (Date.now() - last));
+    const wait = Math.max(20_000, debounceMs - (Date.now() - last));
     pending = setTimeout(() => { pending = null; last = Date.now(); runAnalyst(`critical alert: ${a.title}`); }, wait);
   });
 }
