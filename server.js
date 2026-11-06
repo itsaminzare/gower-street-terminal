@@ -79,6 +79,14 @@ const readBody = (req) => new Promise((ok, fail) => {
   req.on("end", () => { try { ok(JSON.parse(b || "{}")); } catch (e) { fail(e); } });
 });
 
+// ---- Keep-awake for free hosting plans that sleep after idle time (e.g. Render free: 15 min).
+// A request to our own public URL arrives through the host's proxy, which counts as inbound traffic.
+const PUBLIC_URL = env.KEEP_AWAKE_URL || env.RENDER_EXTERNAL_URL;
+if (env.KEEP_AWAKE === "1" && PUBLIC_URL) {
+  setInterval(() => fetch(`${PUBLIC_URL.replace(/\/$/, "")}/api/health`).catch(() => {}), 10 * 60_000).unref();
+  log("server", `keep-awake ping to ${PUBLIC_URL} every 10 min`);
+}
+
 // ---- Limits for a public deployment (all unlimited unless set in the environment)
 const num = (v, d) => (Number(v) > 0 ? Number(v) : d);
 const LIMITS = {

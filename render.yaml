@@ -4,7 +4,7 @@ services:
   - type: web
     name: gower-street-terminal
     runtime: node
-    plan: starter            # always-on; the free plan sleeps and would drop the live AIS feed
+    plan: free               # no card needed; 750 free hours/month covers one service running 24/7
     region: frankfurt        # closest Render region to London
     buildCommand: npm ci --omit=dev
     startCommand: node server.js
@@ -15,6 +15,9 @@ services:
         value: "24"
       - key: HOST
         value: 0.0.0.0
+      # Free instances sleep after 15 idle minutes; the server pings its own public URL to stay awake
+      - key: KEEP_AWAKE
+        value: "1"
       # Secrets: Render asks for these when you create the service. Never commit them.
       - key: AISSTREAM_API_KEY
         sync: false
@@ -22,7 +25,9 @@ services:
         sync: false
       - key: NTFY_TOPIC
         sync: false
-      # Cost controls for a public site (raise or lower any time in the Render dashboard)
+      # Cheap AI + cost controls for a public site (change any time in the Render dashboard)
+      - key: ANALYST_MODEL
+        value: claude-haiku-5-5
       - key: ANALYST_INTERVAL_MIN
         value: "60"
       - key: ANALYST_DAILY_MAX
