@@ -13,7 +13,7 @@
   const hhmm = (t) => new Date(t).toISOString().slice(11, 16) + "Z";
 
   const state = { zones: {}, vessels: new Map(), alerts: [], news: [], social: [], prices: {}, status: {}, analyst: {},
-    official: [], filters: { news: "ALL", social: "ALL", official: "ALL" }, tankersOnly: true, sound: false };
+    official: [], filters: { news: "ALL", social: "ALL", official: "ALL" }, tankersOnly: false, sound: false };
   const maps = {}, layers = {}, markers = new Map(), pulses = new Map();
   window.GST = { state, esc, ago, hhmm }; // shared with chart.js
 
@@ -54,6 +54,15 @@
       for (const a of z.anchorages) L.circle([a.lat, a.lon], { radius: a.km * 1000, color: "#2c5d8a", weight: 1, fillOpacity: 0.04 }).bindTooltip(a.name).addTo(m);
       maps[z.id] = m;
       layers[z.id] = L.layerGroup().addTo(m);
+      // Legend
+      const legend = L.control({ position: "topright" });
+      legend.onAdd = () => Object.assign(L.DomUtil.create("div", "map-legend"), { innerHTML:
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="7.5" fill="#ffb000" fill-opacity=".2"/><path d="M0,-6 L4,5 L0,2.5 L-4,5 Z" fill="#ffb000" stroke="#fff" stroke-width=".8"/></svg> Tanker</div>` +
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><path d="M0,-4.5 L3,3.5 L0,2 L-3,3.5 Z" fill="#5d8fc4"/></svg> Other ship</div>` +
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="2.6" fill="#8a8a8a" fill-opacity=".3" stroke="#bbb" stroke-width=".8"/></svg> Type not yet known</div>` +
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="6" fill="none" stroke="${RING.sanctioned}" stroke-width="2"/></svg> Sanctioned</div>` +
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><rect x="-7" y="-5" width="14" height="10" fill="none" stroke="#a8681a" stroke-dasharray="3 2"/></svg> Watched zone</div>` });
+      legend.addTo(m);
     }
   }
 
@@ -124,21 +133,31 @@
   const COLORS = { Tanker: "#ffa028", Cargo: "#5d8fc4", Passenger: "#b07cd8", Military: "#ff4d4d", "Law enf.": "#ff4d4d", Unknown: "#8a8a8a" };
   // Rings around the hull mark special status: magenta = OFAC-sanctioned, cyan = ship-to-ship transfer, yellow dashed = GPS jump
   const RING = { sanctioned: "#ff3df2", sts: "#2ee6e6", spoof: "#ffd400" };
+  // Tankers: large bright arrow with a glow and white outline, drawn above everything else.
+  // Other ships: small muted markers. Unidentified ships (type not received yet): faint grey outlines.
   function vesselIcon(v) {
-    const color = v.incident ? "#ff3b3b" : COLORS[v.cls] || "#8a8a8a";
+    const tanker = v.cls === "Tanker", unknown = v.cls === "Unknown";
+    const color = v.incident ? "#ff3b3b" : tanker ? "#ffb000" : COLORS[v.cls] || "#8a8a8a";
     const rot = v.hdg ?? v.cog ?? 0;
     const moving = (v.sog ?? 0) > 0.8;
-    const shape = moving ? `<path d="M0,-8 L5,6 L0,3 L-5,6 Z" />` : `<circle r="3.5" />`;
-    const stroke = v.dark ? `stroke="#ff3b3b" stroke-dasharray="2 2" stroke-width="1.5"` : `stroke="#000" stroke-width="0.8"`;
+    let shape, style;
+    if (tanker) {
+      shape = moving ? `<path d="M0,-13 L8,10 L0,5 L-8,10 Z"/>` : `<rect x="-6" y="-9" width="12" height="18" rx="5"/>`;
+      style = v.dark ? `fill-opacity=".45" stroke="#ff3b3b" stroke-width="2" stroke-dasharray="3 2"` : `fill-opacity="1" stroke="#fff" stroke-width="1.6"`;
+    } else {
+      shape = moving ? `<path d="M0,-6 L4,5 L0,2.5 L-4,5 Z"/>` : `<circle r="2.6"/>`;
+      style = unknown ? `fill-opacity=".25" stroke="#bbb" stroke-width=".8"` : `fill-opacity="${v.dark ? 0.3 : 0.75}" stroke="#000" stroke-width=".6"`;
+    }
+    const glow = tanker && !v.dark ? `<circle r="15" fill="${color}" fill-opacity=".18"/><circle r="15" fill="none" stroke="${color}" stroke-opacity=".55" stroke-width="1"/>` : "";
     const rings = [
-      v.sanctioned && `<circle r="10" fill="none" stroke="${RING.sanctioned}" stroke-width="2"/>`,
-      v.sts && `<circle r="13" fill="none" stroke="${RING.sts}" stroke-width="1.5"/>`,
-      v.spoof && `<circle r="11.5" fill="none" stroke="${RING.spoof}" stroke-width="1.5" stroke-dasharray="3 2"/>`,
+      v.sanctioned && `<circle r="17" fill="none" stroke="${RING.sanctioned}" stroke-width="2.5"/>`,
+      v.sts && `<circle r="20" fill="none" stroke="${RING.sts}" stroke-width="2"/>`,
+      v.spoof && `<circle r="18.5" fill="none" stroke="${RING.spoof}" stroke-width="1.8" stroke-dasharray="3 2"/>`,
     ].filter(Boolean).join("");
-    const big = rings ? 30 : 18;
+    const size = tanker || rings ? 44 : 16;
     return L.divIcon({
-      className: `vessel${v.incident ? " incident" : ""}`, iconSize: [big, big], iconAnchor: [big / 2, big / 2],
-      html: `<svg width="${big}" height="${big}" viewBox="${-big / 2} ${-big / 2} ${big} ${big}">${rings}<g transform="rotate(${rot})" fill="${color}" fill-opacity="${v.dark ? 0.35 : v.cls === "Unknown" ? 0.55 : 0.95}" ${stroke}>${shape}</g></svg>`,
+      className: `vessel${tanker ? " tanker" : ""}${v.incident ? " incident" : ""}`, iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+      html: `<svg width="${size}" height="${size}" viewBox="${-size / 2} ${-size / 2} ${size} ${size}">${glow}${rings}<g transform="rotate(${rot})" fill="${color}" ${style}>${shape}</g></svg>`,
     });
   }
 
@@ -171,13 +190,15 @@
     let mk = markers.get(v.mmsi);
     if (!z || !layers[z] || !visible(v)) { if (mk) { mk.m.remove(); mk.trail.remove(); markers.delete(v.mmsi); } return; }
     if (!mk) {
-      mk = { m: L.marker([v.lat, v.lon], { icon: vesselIcon(v) }).bindPopup(() => popup(state.vessels.get(v.mmsi))),
+      mk = { m: L.marker([v.lat, v.lon], { icon: vesselIcon(v), zIndexOffset: v.cls === "Tanker" ? 1000 : 0 }).bindPopup(() => popup(state.vessels.get(v.mmsi))),
              trail: L.polyline(v.track || [], { color: COLORS[v.cls] || "#888", weight: 1, opacity: 0.35 }) };
       mk.m.addTo(layers[z]); mk.trail.addTo(layers[z]);
       mk.m.bindTooltip(() => `${esc(v.name || v.mmsi)} · ${v.sog?.toFixed(1) ?? "?"} kn`, { direction: "top", offset: [0, -6] });
       markers.set(v.mmsi, mk);
     } else {
-      mk.m.setLatLng([v.lat, v.lon]); mk.m.setIcon(vesselIcon(v)); mk.trail.setLatLngs(v.track || []);
+      mk.m.setLatLng([v.lat, v.lon]); mk.m.setIcon(vesselIcon(v)); mk.m.setZIndexOffset(v.cls === "Tanker" ? 1000 : 0);
+      mk.trail.setLatLngs(v.track || []);
+      mk.trail.setStyle(v.cls === "Tanker" ? { color: "#ffb000", weight: 2, opacity: 0.6 } : { color: COLORS[v.cls] || "#888", weight: 1, opacity: 0.25 });
       if (mk.m.isPopupOpen()) mk.m.setPopupContent(popup(v));
     }
   }
@@ -482,7 +503,7 @@
     es.onerror = () => { $("#feeds").innerHTML = `<span class="pill bad">SERVER DISCONNECTED — reconnecting…</span>`; };
   }
   // Shared with tools.js / replay.js
-  Object.assign(window.GST, { maps, layers, markers, showZone, panelFor, panelZone, COLORS, RING, ZN, renderStats, setLiveMap });
+  Object.assign(window.GST, { maps, layers, markers, showZone, panelFor, panelZone, COLORS, RING, ZN, renderStats, setLiveMap, vesselIcon });
   connect();
   setInterval(() => { renderStats(); }, 15000);
 })();

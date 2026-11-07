@@ -252,6 +252,9 @@ iframe.livemap { position: absolute; inset: 0; width: 100%; height: 100%; border
 .leaflet-control-attribution { background: rgba(0,0,0,.6) !important; color: #666 !important; font-size: 9px; }
 .leaflet-control-attribution a { color: #888 !important; }
 .vessel svg { overflow: visible; }
+.vessel.tanker svg { filter: drop-shadow(0 0 3px rgba(255, 176, 0, .8)); }
+.map-legend { background: rgba(10,10,10,.85); border: 1px solid var(--line); padding: 4px 7px; font-size: 10px; color: var(--text); line-height: 1.5; }
+.map-legend svg { vertical-align: middle; margin-right: 3px; }
 .vessel.incident svg { filter: drop-shadow(0 0 4px var(--crit)); }
 .pulse { width: 26px; height: 26px; border: 2px solid var(--crit); border-radius: 50%; animation: pulse 1.2s infinite; }
 @keyframes pulse { from { transform: scale(.4); opacity: 1; } to { transform: scale(2.2); opacity: 0; } }

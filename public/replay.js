@@ -59,14 +59,9 @@
       } else clearInterval(rp.timer);
     }
 
+    // Same markers as the live map (tankers large and glowing), rebuilt from the compact history flags
     function icon(cls, flags, rot, sog) {
-      const color = flags & 1 ? "#ff3b3b" : COLORS[cls] || "#8a8a8a";
-      const shape = sog > 0.8 ? `<path d="M0,-8 L5,6 L0,3 L-5,6 Z"/>` : `<circle r="3.5"/>`;
-      const rings = (flags & 4 ? `<circle r="10" fill="none" stroke="${RING.sanctioned}" stroke-width="2"/>` : "") +
-        (flags & 8 ? `<circle r="13" fill="none" stroke="${RING.sts}" stroke-width="1.5"/>` : "") +
-        (flags & 16 ? `<circle r="11.5" fill="none" stroke="${RING.spoof}" stroke-width="1.5" stroke-dasharray="3 2"/>` : "");
-      return L.divIcon({ className: "vessel", iconSize: [30, 30], iconAnchor: [15, 15],
-        html: `<svg width="30" height="30" viewBox="-15 -15 30 30">${rings}<g transform="rotate(${rot})" fill="${color}" fill-opacity="${flags & 2 ? 0.35 : 0.95}" stroke="#000" stroke-width=".8">${shape}</g></svg>` });
+      return window.GST.vesselIcon({ cls, hdg: rot, sog, incident: flags & 1, dark: flags & 2, sanctioned: flags & 4, sts: flags & 8, spoof: flags & 16 });
     }
 
     function draw() {
@@ -78,7 +73,7 @@
         seen.add(mmsi);
         let m = rp.markers.get(mmsi);
         if (!m) { m = L.marker([lat, lon]).bindTooltip(""); m.addTo(rp.lyr); rp.markers.set(mmsi, m); }
-        m.setLatLng([lat, lon]).setIcon(icon(cls, flags, rot, sog));
+        m.setLatLng([lat, lon]).setIcon(icon(cls, flags, rot, sog)).setZIndexOffset(cls === "Tanker" ? 1000 : 0);
         m.setTooltipContent(`${esc(name || String(mmsi))} · ${sog} kn`);
       }
       for (const [mmsi, m] of rp.markers) if (!seen.has(mmsi)) { m.remove(); rp.markers.delete(mmsi); }
