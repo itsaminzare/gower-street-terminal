@@ -134,7 +134,7 @@
     let frame = box.querySelector("iframe.livemap");
     const btn = panel.querySelector(".livemap-btn");
     btn.classList.toggle("on", on);
-    btn.textContent = on ? "◧ OUR MAP" : "🛰 LIVE MAP";
+    btn.textContent = on ? "Own map" : "Live map";
     if (!on) { box.querySelectorAll(".livemap, .livemap-note, .livemap-overlay, .livemap-label, .livemap-catch, .livemap-recenter").forEach((e) => e.remove()); return; }
     if (!frame) {
       frame = Object.assign(document.createElement("iframe"), { className: "livemap", title: "VesselFinder live map" });
@@ -144,7 +144,7 @@
         `<div class="livemap-note">Live map © <a href="https://www.vesselfinder.com" target="_blank" rel="noopener">VesselFinder</a> · their data, not covered by this terminal's alerts or flags</div>` +
         `<svg class="livemap-overlay"></svg><div class="livemap-catch" title="Click or scroll to explore the live map"></div>` +
         `<div class="livemap-label"></div>` +
-        `<button class="livemap-recenter" hidden title="Return to the chokepoint view and show its outline">⌖ RE-CENTER</button>`);
+        `<button class="livemap-recenter" hidden title="Return to the chokepoint view and show its outline">Re-centre</button>`);
       // Their map can't tell us when it's panned, so the outline hides on the first click/scroll and RE-CENTER restores both
       const catcher = box.querySelector(".livemap-catch");
       const release = () => {
@@ -251,11 +251,11 @@
   function popup(v) {
     const row = (k, val) => (val == null || val === "" ? "" : `<tr><td>${k}</td><td>${esc(val)}</td></tr>`);
     return `<b>${esc(v.name || "MMSI " + v.mmsi)}</b> <span class="muted">${esc(v.cls)}${v.type ? " (" + v.type + ")" : ""}</span>
-      ${v.incident ? `<div style="color:#ff6b6b;font-weight:bold">⚠ ${esc(v.incident)}</div>` : ""}
+      ${v.incident ? `<div style="color:#ff6b6b;font-weight:bold">Incident: ${esc(v.incident)}</div>` : ""}
       ${v.dark ? `<div style="color:#ffb000">AIS signal lost — last fix ${ago(v.lastSeen)} ago</div>` : ""}
       ${v.sanctioned ? `<div style="color:${RING.sanctioned};font-weight:bold">⛔ OFAC-sanctioned: listed as "${esc(v.sanctioned.name)}" · programme ${esc(v.sanctioned.program || "?")}${v.sanctioned.owner ? ` · owner ${esc(v.sanctioned.owner)}` : ""}</div>` : ""}
       ${v.sts ? `<div style="color:${RING.sts}">⇄ Possible ship-to-ship transfer with ${esc(state.vessels.get(v.sts)?.name || "MMSI " + v.sts)}</div>` : ""}
-      ${v.spoof ? `<div style="color:${RING.spoof}">⌖ Position jumped recently: possible GPS spoofing/jamming</div>` : ""}
+      ${v.spoof ? `<div style="color:${RING.spoof}">Position jumped recently: possible GPS spoofing/jamming</div>` : ""}
       <table class="vtable">
       ${row("MMSI", v.mmsi)}${row("IMO", v.imo)}${row("Callsign", v.callsign)}${row("Dest", v.dest)}
       ${row("SOG", v.sog != null ? v.sog.toFixed(1) + " kn" : null)}${row("COG", v.cog != null ? Math.round(v.cog) + "°" : null)}
@@ -354,7 +354,7 @@
     pills.push(`<span class="pill ${s.sanctions?.ok ? "ok" : "bad"}" title="${esc(s.sanctions?.error || `OFAC SDN list: ${s.sanctions?.vessels} vessels`)}">OFAC ${s.sanctions?.vessels || 0}</span>`);
     pills.push(`<span class="pill ${s.flows?.ok ? "ok" : "bad"}" title="${esc(s.flows?.error ? `IMF PortWatch: ${s.flows.error}. Retrying${s.flows.nextTry ? " at " + hhmm(s.flows.nextTry) : ""}.` : "IMF PortWatch transit data")}">IMF FLOWS</span>`);
     pills.push(`<span class="pill ${s.analyst?.enabled ? "ok" : "bad"}" title="${esc(s.analyst?.error || "")}">AI ANALYST</span>`);
-    pills.push(`<span class="pill ${s.notify?.channels?.length ? (s.notify.lastError ? "bad" : "ok") : ""}" title="${esc(s.notify?.channels?.length ? `Phone alerts via ${s.notify.channels.join(" + ")} (${s.notify.minSeverity}+)${s.notify.lastError ? " · last error: " + s.notify.lastError : ""}` : "Phone alerts off (see ⚙ ALERTS)")}">PHONE</span>`);
+    pills.push(`<span class="pill ${s.notify?.channels?.length ? (s.notify.lastError ? "bad" : "ok") : ""}" title="${esc(s.notify?.channels?.length ? `Phone alerts via ${s.notify.channels.join(" + ")} (${s.notify.minSeverity}+)${s.notify.lastError ? " · last error: " + s.notify.lastError : ""}` : "Phone alerts off (see Alerts)")}">PHONE</span>`);
     // Full source list lives in a pop-up; the top bar shows one summary button
     $("#feeds").innerHTML = `<div class="pop-title">Data sources</div><div class="pills">${pills.join("")}</div>` +
       `<div class="pop-note">Green = working · grey = not set up · red = temporarily unavailable. Hover a source for details.</div>`;
@@ -518,7 +518,7 @@
     const el = $("#analyst");
     const b = a.brief;
     let html = "";
-    if (a.running) html += `<div class="muted" style="margin-bottom:6px">▶ Analyst is reviewing the latest picture…</div>`;
+    if (a.running) html += `<div class="muted" style="margin-bottom:6px">Updating…</div>`;
     if (!b) {
       html += a.enabled ? `<div class="empty">First brief will appear shortly after startup.</div>` :
         `<div class="empty">AI analyst is off.<br><br>${esc(a.error || "")}<br><br>Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> and restart.</div>`;

@@ -17,7 +17,7 @@
       if (panel.querySelector(".maps iframe.livemap")) window.GST.setLiveMap(panel, false);
       const zone = panelZone[panel.id];
       const box = state.zones[zone]?.box;
-      btn.classList.add("on"); btn.textContent = "■ EXIT REPLAY";
+      btn.classList.add("on"); btn.textContent = "Exit replay";
       bar.hidden = false; bar.innerHTML = `<span class="muted">Loading 24h history…</span>`;
       const h = await fetch("/api/history").then((r) => r.json());
       const inBox = (lat, lon) => lat >= box[0][0] && lat <= box[1][0] && lon >= box[0][1] && lon <= box[1][1];
@@ -97,7 +97,7 @@
         layers[rp.zone].addTo(rp.map);
         rp = null;
       }
-      btn.classList.remove("on"); btn.textContent = "⟲ REPLAY";
+      btn.classList.remove("on"); btn.textContent = "Replay";
       bar.hidden = true; bar.innerHTML = "";
     }
   });

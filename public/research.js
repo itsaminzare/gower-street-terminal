@@ -115,7 +115,7 @@
     const px = { BRENT: idx("BRENT"), FRO: idx("FRO") };
     const evs = r.events.filter((e) => C.events.includes(e.id));
     $("#tm-body").innerHTML = `
-      <div class="cr-controls"><button id="cr-play" class="hl">❚❚ Pause</button>
+      <div class="cr-controls"><button id="cr-play" >Pause</button>
         <select id="cr-speed" title="Playback speed"><option value="250">Slow</option><option value="110" selected>Normal</option><option value="45">Fast</option></select>
         <input type="range" id="cr-slider" min="0" max="${days.length - 1}" value="0">
         <span id="cr-date" class="cr-date"></span></div>
@@ -160,7 +160,7 @@
         const out5 = el >= 7 ? `5d: Brent <b class="${cls(e.moves.BRENT[5])}">${sgn(e.moves.BRENT[5])}%</b>, Frontline <b class="${cls(e.moves.FRO[5])}">${sgn(e.moves.FRO[5])}%</b>` : "";
         const out20 = el >= 28 ? ` · 20d: Brent <b class="${cls(e.moves.BRENT[20])}">${sgn(e.moves.BRENT[20])}%</b>` : "";
         return `<div class="cr-ev"><div class="muted">${e.date} · ${esc(r.kindLabel[e.kind])}</div><b>${esc(e.title)}</b>
-          <div class="pb">📊 Playbook at the time: ${call}</div>${out5 ? `<div class="out">Outcome → ${out5}${out20}</div>` : `<div class="muted">Outcome pending…</div>`}</div>`;
+          <div class="pb">Playbook at the time: ${call}</div>${out5 ? `<div class="out">Outcome → ${out5}${out20}</div>` : `<div class="muted">Outcome pending…</div>`}</div>`;
       }).join("") : `<div class="empty">Calm before the storm: Red Sea traffic is normal. Incidents will appear here as the replay reaches them.</div>`;
     }
     function draw() {
@@ -181,10 +181,10 @@
     }
     const play = () => {
       clearInterval(timer);
-      $("#cr-play").textContent = "❚❚ Pause";
-      timer = setInterval(() => { if (!$("#cr-t")) return clearInterval(timer); if (i >= days.length - 1) { clearInterval(timer); timer = null; $("#cr-play").textContent = "↺ Replay"; return; } i++; draw(); }, +$("#cr-speed").value);
+      $("#cr-play").textContent = "Pause";
+      timer = setInterval(() => { if (!$("#cr-t")) return clearInterval(timer); if (i >= days.length - 1) { clearInterval(timer); timer = null; $("#cr-play").textContent = "Replay"; return; } i++; draw(); }, +$("#cr-speed").value);
     };
-    const pause = () => { clearInterval(timer); timer = null; $("#cr-play").textContent = "▶ Play"; };
+    const pause = () => { clearInterval(timer); timer = null; $("#cr-play").textContent = "Play"; };
     $("#cr-play").addEventListener("click", () => { if (timer) pause(); else { if (i >= days.length - 1) i = 0; play(); } });
     $("#cr-speed").addEventListener("change", () => { if (timer) play(); });
     $("#cr-slider").addEventListener("input", (e) => { pause(); i = +e.target.value; draw(); });

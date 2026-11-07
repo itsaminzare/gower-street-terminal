@@ -57,7 +57,7 @@
     const isNew = !seen.has(i.id) && i.id !== "px" && lastSig !== "";
     return `<span class="bk-item${isNew ? " bk-new" : ""}" data-id="${esc(i.id)}"${i.url ? ` data-url="${esc(i.url)}"` : ""}>` +
       `<span class="bk-tag ${i.cls}">${i.tag}</span><span class="bk-time">${i.id === "px" ? "" : hhmm(i.t)}</span>` +
-      `<span class="bk-src">${esc(i.src)}:</span> ${esc(i.text)}</span><span class="bk-sep">◆</span>`;
+      `<span class="bk-src">${esc(i.src)}:</span> ${esc(i.text)}</span><span class="bk-sep">|</span>`;
   }
 
   function render() {

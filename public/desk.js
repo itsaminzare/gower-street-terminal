@@ -58,10 +58,10 @@
         <span title="Paper risk as % of book if the stop is hit">Risk <b>${i.riskPct}%</b></span><span>${i.horizon_days}d</span></div>
       ${rail(i)}
       <div class="thesis">${esc(i.thesis)}</div>
-      ${i.trace?.baseRate?.available ? `<div class="base">📊 History (code): ${i.direction === "SHORT" ? "fell" : "rose"} in ${i.trace.baseRate.familyStat.wins}/${i.trace.baseRate.familyStat.n} ${esc(i.trace.baseRate.family)} incidents over ${i.trace.baseRate.h} trading day${i.trace.baseRate.h > 1 ? "s" : ""}</div>` : ""}
+      ${i.trace?.baseRate?.available ? `<div class="base">History: ${i.direction === "SHORT" ? "fell" : "rose"} in ${i.trace.baseRate.familyStat.wins}/${i.trace.baseRate.familyStat.n} ${esc(i.trace.baseRate.family)} incidents over ${i.trace.baseRate.h} trading day${i.trace.baseRate.h > 1 ? "s" : ""}</div>` : ""}
       ${failed.length ? `<div class="blocked">✗ ${failed.map((c) => `${esc(c.name)} <span class="muted">(${esc(c.detail)})</span>`).join("<br>✗ ")}</div>` : ""}
       ${i.closeAdvice && i.status === "open" ? `<div class="advice">Agent recommends closing: ${esc(i.closeAdvice.reason)}</div>` : ""}
-      ${i.status === "proposed" ? `<div class="act"><button class="approve" data-act="approve">✓ Approve paper trade</button><button class="reject" data-act="reject">✗ Reject</button><span class="muted">Approval re-runs the risk checks at the live price.</span></div>` : ""}
+      ${i.status === "proposed" ? `<div class="act"><button class="approve" data-act="approve">Approve</button><button class="reject" data-act="reject">Reject</button><span class="muted">Approval re-runs the risk checks at the live price.</span></div>` : ""}
       ${i.status === "open" ? `<div class="act"><button class="reject" data-act="close">Close at market</button></div>` : ""}
       <details><summary>Decision trace · evidence · invalidation</summary>
         <ul class="ev">${i.evidence.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>
@@ -83,11 +83,11 @@
     const tile = (v, label, tip, c = "") => `<div class="tile" title="${esc(tip)}"><b class="${c}">${v}</b><span>${label}</span></div>`;
     const closed = by(["stopped", "target", "expired", "closed"]), other = by(["rejected", "lapsed", "blocked"]).slice(0, 12);
     el.innerHTML = `
-      <div class="who">For a <b>crude oil trader</b> who must act on Gulf and Red Sea shipping news within minutes. The failure this guards against: <b>buying the spike on an unverified headline</b>. The agent proposes, code enforces the limits, <b>you</b> decide.</div>
+      <div class="who"><b>User</b> crude oil trader · <b>Guards against</b> buying the spike on an unverified headline · <b>Flow</b> agent proposes, code enforces limits, you approve</div>
       <div class="killbar ${d.halted ? "on" : ""}">
-        ${d.halted ? `<b>■ DESK HALTED</b> · no new proposals or approvals <button data-halt="0">Resume</button>`
+        ${d.halted ? `<b>DESK HALTED</b> · no new proposals or approvals <button data-halt="0">Resume</button>`
           : `<span title="Limits enforced in code">Limits: ≤${L.maxRiskPerTrade}% per trade · ≤${L.maxOpenRisk}% open · 1 per instrument · EV&gt;0 after costs · P(win) ≤ history + ${Math.round((L.maxProbOverBase || 0) * 100)}pts</span>
-             <button data-halt="1" class="kill" title="Halt the desk: no new proposals or approvals">■ Kill switch</button><button data-halt="2" class="kill" title="Halt and close every open paper trade at market">Halt + flatten</button>`}
+             <button data-halt="1" class="kill" title="Halt the desk: no new proposals or approvals">Kill switch</button><button data-halt="2" class="kill" title="Halt and close every open paper trade at market">Halt + flatten</button>`}
       </div>
       <div class="tiles">
         ${tile(`${s.proposed ?? 0}`, "to decide", "Proposals waiting for a human decision")}
@@ -96,7 +96,7 @@
         ${tile(s.brier != null ? s.brier.toFixed(2) : "–", "Brier", "Calibration of P(win): 0 perfect, 0.25 coin flip")}
         ${tile(`${s.rejectedByRisk ?? 0} · ${s.rejectedByHuman ?? 0}`, "blocked · rejected", "Ideas blocked by risk limits · rejected by a human")}
       </div>
-      ${d.running ? `<div class="muted run">▶ Agent is reviewing the live picture and the event study…</div>` : ""}
+      ${d.running ? `<div class="muted run">Updating…</div>` : ""}
       ${run ? `<div class="regime"><b>${esc(run.regime || "")}</b><div>${esc(run.summary || "")}</div>${run.noTrade ? `<div class="muted">No (more) trades: ${esc(run.noTrade)}</div>` : ""}
         <div class="muted foot">Agent run ${hhmm(run.time)} (${ago(run.time)} ago) · ${esc(run.reason)} · <a href="/api/desk/input/${esc(run.id || "")}" target="_blank" rel="noopener">exact input ↗</a></div></div>`
         : d.enabled ? `<div class="empty">The agent runs a couple of minutes after startup, every 2 hours and after critical alerts. Press <b>Run now</b> to ask it immediately.</div>`
