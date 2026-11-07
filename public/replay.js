@@ -72,7 +72,7 @@
       const seen = new Set();
       for (const [mmsi, lat, lon, rot, sog, flags] of f.v) {
         const [name, cls] = rp.meta[mmsi] || ["", "Unknown"];
-        if (state.tankersOnly && cls !== "Tanker" && !(flags & (1 | 4 | 8))) continue;
+        if (state.tankersOnly && cls !== "Tanker" && cls !== "Unknown" && !(flags & (1 | 4 | 8))) continue;
         seen.add(mmsi);
         let m = rp.markers.get(mmsi);
         if (!m) { m = L.marker([lat, lon]).bindTooltip(""); m.addTo(rp.lyr); rp.markers.set(mmsi, m); }

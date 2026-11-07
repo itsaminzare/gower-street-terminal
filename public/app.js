@@ -92,7 +92,7 @@
     const big = rings ? 30 : 18;
     return L.divIcon({
       className: `vessel${v.incident ? " incident" : ""}`, iconSize: [big, big], iconAnchor: [big / 2, big / 2],
-      html: `<svg width="${big}" height="${big}" viewBox="${-big / 2} ${-big / 2} ${big} ${big}">${rings}<g transform="rotate(${rot})" fill="${color}" fill-opacity="${v.dark ? 0.35 : 0.95}" ${stroke}>${shape}</g></svg>`,
+      html: `<svg width="${big}" height="${big}" viewBox="${-big / 2} ${-big / 2} ${big} ${big}">${rings}<g transform="rotate(${rot})" fill="${color}" fill-opacity="${v.dark ? 0.35 : v.cls === "Unknown" ? 0.55 : 0.95}" ${stroke}>${shape}</g></svg>`,
     });
   }
 
@@ -115,7 +115,9 @@
   }
 
   // Ship type arrives in separate static messages (~every 6 min), so untyped vessels are hidden in tankers-only mode until classified
-  function visible(v) { return !state.tankersOnly || v.cls === "Tanker" || !!v.incident || !!v.sanctioned || !!v.sts; }
+  // Ships whose type hasn't arrived yet ("Unknown") stay visible as faint grey markers: many ships send their type rarely,
+  // and hiding them left the chokepoint maps looking empty.
+  function visible(v) { return !state.tankersOnly || v.cls === "Tanker" || v.cls === "Unknown" || !!v.incident || !!v.sanctioned || !!v.sts; }
 
   function upsertVessel(v) {
     state.vessels.set(v.mmsi, v);
@@ -150,8 +152,15 @@
       const s = st[z]; if (!s) continue;
       const hot = (n, c) => `<b style="color:${n ? c : "inherit"}">${n}</b>`;
       document.querySelector(`#${pid} .stats`).innerHTML =
-        `TANKERS <b>${s.tankers}</b> (moving <b>${s.tankersMoving}</b>, avg <b>${s.avgTankerSpeed ?? "–"}</b> kn) · ALL <b>${s.vessels}</b> · DARK ${hot(s.dark, "#ff4d4d")} · SANCTIONED ${hot(s.sanctioned, RING.sanctioned)} · STS ${hot(s.sts, RING.sts)} · GPS JUMPS ${hot(s.spoofed, RING.spoof)} · TRANSITS 24H <b>${s.transits24h}</b> (tankers <b>${s.tankerTransits24h}</b>)`;
+        `TANKERS <b>${s.tankers}</b> (moving <b>${s.tankersMoving}</b>, avg <b>${s.avgTankerSpeed ?? "–"}</b> kn) · ALL <b>${s.vessels}</b> · DARK ${hot(s.dark, "#ff4d4d")} · SANCTIONED ${hot(s.sanctioned, RING.sanctioned)} · STS ${hot(s.sts, RING.sts)} · GPS JUMPS ${hot(s.spoofed, RING.spoof)} · TRANSITS 24H <b>${s.transits24h}</b> (tankers <b>${s.tankerTransits24h}</b>)` +
+        (s.vessels === 0 && state.status.ais?.mode === "live" ? ` · <span class="warn">no ships reported here yet: free AIS has few receivers in this area</span>` : "");
     }
+    // Ship counts on every zone tab, so it's obvious where the ships are
+    document.querySelectorAll(".zone-tabs button[data-z]").forEach((b) => {
+      b.dataset.label ||= b.textContent;
+      const n = st[b.dataset.z]?.vessels;
+      b.textContent = n == null ? b.dataset.label : `${b.dataset.label} (${n})`;
+    });
   }
   function renderFeeds() {
     const s = state.status; if (!s.ais) return;
