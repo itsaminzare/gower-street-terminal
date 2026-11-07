@@ -322,7 +322,12 @@
       `<span class="pill ${ais.connected ? "ok" : "bad"}" title="${esc(ais.error || "")}">AIS ${ais.connected ? "LIVE " + (ais.messages || 0).toLocaleString() + " msgs" : "OFFLINE"}</span>`);
     pills.push(`<span class="pill ${s.news?.ok ? "ok" : "bad"}" title="Failed: ${esc((s.news?.failed || []).join(", "))}">NEWS ${s.news?.ok ?? 0}/${s.news?.feeds ?? 0}</span>`);
     pills.push(`<span class="pill ${s.official?.ok ? "ok" : "bad"}" title="Failed: ${esc((s.official?.failed || []).join(", "))}">OFFICIAL ${s.official?.ok ?? 0}/${s.official?.sources ?? 0}</span>`);
-    for (const [k, v] of Object.entries(s.social || {})) pills.push(`<span class="pill ${v.ok ? "ok" : "bad"}" title="${esc(v.error || "")}">${k.toUpperCase()}</span>`);
+    // Sources that simply aren't set up (no key / no channels) are neutral grey, not "offline"
+    const notSetUp = (e) => /^No |not configured|requires a paid/i.test(e || "");
+    for (const [k, v] of Object.entries(s.social || {})) {
+      const cls = v.ok ? "ok" : notSetUp(v.error) ? "off" : "bad";
+      pills.push(`<span class="pill ${cls}" title="${esc(cls === "off" ? `Not set up: ${v.error}` : v.error || "")}">${k.toUpperCase()}${cls === "off" ? " · not set up" : ""}</span>`);
+    }
     pills.push(`<span class="pill ${s.prices?.ok ? "ok" : "bad"}" title="${esc(s.prices?.error || "")}">PRICES</span>`);
     pills.push(`<span class="pill ${s.curve?.ok ? "ok" : "bad"}" title="${esc(s.curve?.error || "Brent/WTI futures curves")}">CURVE</span>`);
     pills.push(`<span class="pill ${s.sanctions?.ok ? "ok" : "bad"}" title="${esc(s.sanctions?.error || `OFAC SDN list: ${s.sanctions?.vessels} vessels`)}">OFAC ${s.sanctions?.vessels || 0}</span>`);
@@ -331,7 +336,7 @@
     pills.push(`<span class="pill ${s.notify?.channels?.length ? (s.notify.lastError ? "bad" : "ok") : ""}" title="${esc(s.notify?.channels?.length ? `Phone alerts via ${s.notify.channels.join(" + ")} (${s.notify.minSeverity}+)${s.notify.lastError ? " · last error: " + s.notify.lastError : ""}` : "Phone alerts off (see ⚙ ALERTS)")}">PHONE</span>`);
     // Full source list lives in a pop-up; the top bar shows one summary button
     $("#feeds").innerHTML = `<div class="pop-title">Data sources</div><div class="pills">${pills.join("")}</div>` +
-      `<div class="pop-note">Green = working · red = unavailable or not configured. Hover a source for details.</div>`;
+      `<div class="pop-note">Green = working · grey = not set up · red = temporarily unavailable. Hover a source for details.</div>`;
     const bad = (pills.join("").match(/class="pill bad"/g) || []).length;
     const btn = $("#status-btn");
     btn.textContent = ais.mode === "demo" ? "● Demo data" : bad ? `● ${bad} source${bad > 1 ? "s" : ""} offline` : "● All data live";
