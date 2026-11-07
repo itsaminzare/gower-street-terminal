@@ -73,6 +73,38 @@
     renderStats();
     panel.dispatchEvent(new CustomEvent("zonechange", { detail: z }));
   }
+  // LIVE MAP: VesselFinder's public embed of the active zone. Their receiver + satellite network covers
+  // Hormuz and the Red Sea far better than the free feed; our alerts/flags don't apply to their map.
+  const VF_ZOOM = { HORMUZ: 8, BAB: 8, SUEZ: 8, CAPE: 7 };
+  function vesselFinderUrl(z, h) {
+    const zone = state.zones[z]; if (!zone) return "about:blank";
+    const [lat, lon] = zone.center;
+    const qs = `zoom=${VF_ZOOM[z] || 8}&lat=${lat}&lon=${lon}&width=100%25&height=${Math.max(400, Math.round(h))}` +
+      "&names=false&track=false&fleet=false&fleet_name=false&fleet_hide_old_positions=false&clicktoact=false&store_pos=false" +
+      `&ra=${encodeURIComponent(location.href)}`;
+    return `https://www.vesselfinder.com/aismap?${qs}`;
+  }
+  function setLiveMap(panel, on) {
+    const box = panel.querySelector(".maps");
+    let frame = box.querySelector("iframe.livemap");
+    const btn = panel.querySelector(".livemap-btn");
+    btn.classList.toggle("on", on);
+    btn.textContent = on ? "◧ OUR MAP" : "🛰 LIVE MAP";
+    if (!on) { frame?.remove(); box.querySelector(".livemap-note")?.remove(); return; }
+    if (!frame) {
+      frame = Object.assign(document.createElement("iframe"), { className: "livemap", title: "VesselFinder live map" });
+      frame.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
+      box.append(frame);
+      box.insertAdjacentHTML("beforeend", `<div class="livemap-note">Live map © <a href="https://www.vesselfinder.com" target="_blank" rel="noopener">VesselFinder</a> · their data, not covered by this terminal's alerts or flags</div>`);
+    }
+    frame.src = vesselFinderUrl(panelZone[panel.id], box.clientHeight);
+  }
+  document.querySelectorAll(".map-panel").forEach((panel) => {
+    panel.querySelector(".livemap-btn").addEventListener("click", () => setLiveMap(panel, !panel.querySelector(".maps iframe.livemap")));
+    // Follow zone tab changes while the live map is showing
+    panel.addEventListener("zonechange", () => { if (panel.querySelector(".maps iframe.livemap")) setLiveMap(panel, true); });
+  });
+
   function panelFor(zone) { return [...document.querySelectorAll(".map-panel")].find((p) => p.dataset.zones.split(",").includes(zone)); }
 
   const COLORS = { Tanker: "#ffa028", Cargo: "#5d8fc4", Passenger: "#b07cd8", Military: "#ff4d4d", "Law enf.": "#ff4d4d", Unknown: "#8a8a8a" };
