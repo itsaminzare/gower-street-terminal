@@ -171,6 +171,7 @@ ${snap}`;
         },
       };
       desk.ideas.unshift(idea); made.push(idea.id);
+      if (rc.pass) bus.emit("desk-proposal", idea);
       audit("agent", "proposed", `${idea.direction} ${idea.instrument} @ ${idea.entry}, P(win) ${Math.round(idea.probability * 100)}%, EV ${idea.evR}R`, idea.id);
       audit("server", rc.pass ? "risk checks passed" : "BLOCKED by risk checks", rc.pass ? `${rc.checks.length} checks` : rc.blocking.join("; "), idea.id);
     }

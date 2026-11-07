@@ -44,5 +44,11 @@ export function startNotify(env) {
     queue.push(a);
     if (!timer) timer = setTimeout(flush, 30_000);
   });
+  // Trade desk: a proposal waits for a human and lapses after an hour, so tell the owner straight away
+  const site = (env.KEEP_AWAKE_URL || env.RENDER_EXTERNAL_URL || "").replace(/\/$/, "");
+  bus.on("desk-proposal", (i) => {
+    send(`${DEMO ? "[DEMO DATA] " : ""}Trade desk: ${i.direction} ${i.instrument} awaiting your approval`,
+      `${i.thesis}\nP(win) ${Math.round(i.probability * 100)}% · EV ${i.evR}R · risk ${i.riskPct}% · ${i.horizon_days}d\nApprove or reject within an hour${site ? `: ${site}` : " in the Trade desk tab"}.`, true);
+  });
   log("notify", `phone alerts via ${notifyStatus.channels.join(" + ")} (min severity: ${notifyStatus.minSeverity})`);
 }
