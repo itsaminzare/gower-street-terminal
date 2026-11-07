@@ -49,7 +49,12 @@
       L.tileLayer(esri + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16, attribution: "Tiles © Esri, HERE, Garmin, © OpenStreetMap" }).addTo(m);
       L.tileLayer(esri + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(m);
       L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", { maxZoom: 14, opacity: 0.6, attribution: "OpenSeaMap" }).addTo(m);
-      L.rectangle(z.box, { color: "#a8681a", weight: 1, dashArray: "4 4", fill: false }).addTo(m);
+      L.rectangle(z.box, { color: "#c98a2a", weight: 1.5, dashArray: "6 5", fill: false, interactive: false }).addTo(m);
+      // The waterway itself: bright outline + light fill + label, so the important area is obvious
+      if (z.focus) {
+        L.polygon(z.focus.poly, { color: "#ffd400", weight: 2.5, opacity: 0.95, fillColor: "#ffd400", fillOpacity: 0.07, dashArray: null, interactive: false })
+          .bindTooltip(z.focus.label, { permanent: true, direction: "center", className: "focus-label", interactive: false }).addTo(m);
+      }
       L.polyline(z.gate, { color: "#ffa028", weight: 2, opacity: 0.7 }).bindTooltip("Transit gate").addTo(m);
       for (const a of z.anchorages) L.circle([a.lat, a.lon], { radius: a.km * 1000, color: "#2c5d8a", weight: 1, fillOpacity: 0.04 }).bindTooltip(a.name).addTo(m);
       maps[z.id] = m;
@@ -61,7 +66,8 @@
         `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><path d="M0,-4.5 L3,3.5 L0,2 L-3,3.5 Z" fill="#5d8fc4"/></svg> Other ship</div>` +
         `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="2.6" fill="#8a8a8a" fill-opacity=".3" stroke="#bbb" stroke-width=".8"/></svg> Type not yet known</div>` +
         `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="6" fill="none" stroke="${RING.sanctioned}" stroke-width="2"/></svg> Sanctioned</div>` +
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><rect x="-7" y="-5" width="14" height="10" fill="none" stroke="#a8681a" stroke-dasharray="3 2"/></svg> Watched zone</div>` });
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><rect x="-7" y="-5" width="14" height="10" fill="#ffd400" fill-opacity=".15" stroke="#ffd400" stroke-width="1.5"/></svg> Key waterway</div>` +
+        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><rect x="-7" y="-5" width="14" height="10" fill="none" stroke="#c98a2a" stroke-dasharray="3 2"/></svg> Watched area</div>` });
       legend.addTo(m);
     }
   }
@@ -109,15 +115,69 @@
     const btn = panel.querySelector(".livemap-btn");
     btn.classList.toggle("on", on);
     btn.textContent = on ? "◧ OUR MAP" : "🛰 LIVE MAP";
-    if (!on) { frame?.remove(); box.querySelector(".livemap-note")?.remove(); return; }
+    if (!on) { box.querySelectorAll(".livemap, .livemap-note, .livemap-overlay, .livemap-catch, .livemap-recenter").forEach((e) => e.remove()); return; }
     if (!frame) {
       frame = Object.assign(document.createElement("iframe"), { className: "livemap", title: "VesselFinder live map" });
       frame.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
       box.append(frame);
-      box.insertAdjacentHTML("beforeend", `<div class="livemap-note">Live map © <a href="https://www.vesselfinder.com" target="_blank" rel="noopener">VesselFinder</a> · their data, not covered by this terminal's alerts or flags</div>`);
+      box.insertAdjacentHTML("beforeend",
+        `<div class="livemap-note">Live map © <a href="https://www.vesselfinder.com" target="_blank" rel="noopener">VesselFinder</a> · their data, not covered by this terminal's alerts or flags</div>` +
+        `<svg class="livemap-overlay"></svg><div class="livemap-catch" title="Click or scroll to explore the live map"></div>` +
+        `<button class="livemap-recenter" hidden title="Return to the chokepoint view and show its outline">⌖ RE-CENTER</button>`);
+      // Their map can't tell us when it's panned, so the outline hides on the first click/scroll and RE-CENTER restores both
+      const catcher = box.querySelector(".livemap-catch");
+      const release = () => { box.querySelector(".livemap-overlay").style.display = "none"; catcher.style.display = "none"; box.querySelector(".livemap-recenter").hidden = false; };
+      catcher.addEventListener("pointerdown", release);
+      catcher.addEventListener("wheel", release, { passive: true });
+      box.querySelector(".livemap-recenter").addEventListener("click", () => setLiveMap(panel, true));
     }
     frame.src = vesselFinderUrl(panelZone[panel.id], box.clientHeight);
+    box.querySelector(".livemap-overlay").style.display = "";
+    box.querySelector(".livemap-catch").style.display = "";
+    box.querySelector(".livemap-recenter").hidden = true;
+    drawLiveOverlay(panel);
   }
+
+  // Draw the watched area + key waterway over VesselFinder's map at the exact pixels their map uses.
+  // Their embed is OpenLayers (Web Mercator, 256-px tiles) under a 20-px header, centred on the URL's lat/lon.
+  const VF_HEADER = 20;
+  function mercPx(lat, lon, zoom) {
+    const world = 256 * 2 ** zoom, s = Math.sin((lat * Math.PI) / 180);
+    return [((lon + 180) / 360) * world, (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * world];
+  }
+  function drawLiveOverlay(panel) {
+    const box = panel.querySelector(".maps"), svg = box.querySelector(".livemap-overlay");
+    const z = panelZone[panel.id], zone = state.zones[z];
+    if (!svg || !zone) return;
+    const W = box.clientWidth, H = box.clientHeight, zoom = VF_ZOOM[z] || 8;
+    const [cx, cy] = mercPx(zone.center[0], zone.center[1], zoom);
+    const toPx = ([lat, lon]) => { const [x, y] = mercPx(lat, lon, zoom); return [W / 2 + (x - cx), VF_HEADER + (H - VF_HEADER) / 2 + (y - cy)]; };
+    const pts = (arr) => arr.map((p) => toPx(p).map((n) => n.toFixed(1)).join(",")).join(" ");
+    const [[a, b], [c, d]] = zone.box;
+    let html = `<polygon points="${pts([[a, b], [a, d], [c, d], [c, b]])}" fill="none" stroke="#c98a2a" stroke-width="2" stroke-dasharray="7 5"/>`;
+    if (zone.focus) {
+      const poly = zone.focus.poly.map(toPx);
+      const lx = poly.reduce((s, p) => s + p[0], 0) / poly.length, ly = poly.reduce((s, p) => s + p[1], 0) / poly.length;
+      html += `<polygon points="${pts(zone.focus.poly)}" fill="#ffd400" fill-opacity=".08" stroke="#ffd400" stroke-width="3"/>` +
+        `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" class="lm-label">${esc(zone.focus.label)}</text>`;
+    }
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.innerHTML = html;
+  }
+  // VesselFinder keeps its map's left edge (not its centre) when the frame is resized, so after a real size
+  // change the live map is reloaded (debounced) to stay centred under the outline.
+  document.querySelectorAll(".map-panel").forEach((panel) => {
+    const box = panel.querySelector(".maps");
+    let last = null, timer = null;
+    new ResizeObserver(() => {
+      const size = [box.clientWidth, box.clientHeight];
+      if (last && Math.abs(size[0] - last[0]) < 20 && Math.abs(size[1] - last[1]) < 20) return;
+      last = size;
+      if (!box.querySelector("iframe.livemap") || box.querySelector(".livemap-recenter:not([hidden])")) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => setLiveMap(panel, true), 400);
+    }).observe(box);
+  });
   document.querySelectorAll(".map-panel").forEach((panel) => {
     panel.querySelector(".livemap-btn").addEventListener("click", () => {
       const on = !panel.querySelector(".maps iframe.livemap");

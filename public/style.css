@@ -123,6 +123,10 @@ body { display: flex; flex-direction: column; }
 .livemap-btn.on { background: #2c5d8a; color: #fff; border-color: #2c5d8a; }
 /* Above all Leaflet layers and controls (which go up to z-index 1000) */
 iframe.livemap { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 1100; background: #b5d0e8; }
+.livemap-overlay { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1102; pointer-events: none; }
+.livemap-overlay .lm-label { fill: #000; font: bold 11px var(--font); paint-order: stroke; stroke: #ffd400; stroke-width: 3px; letter-spacing: .5px; }
+.livemap-catch { position: absolute; inset: 20px 0 0 0; z-index: 1103; cursor: grab; }
+.livemap-recenter { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); z-index: 1104; background: #ffd400; color: #000; font-weight: bold; border-color: #000; }
 .livemap-note { position: absolute; left: 6px; bottom: 6px; z-index: 1101; font-size: 10px; background: rgba(0,0,0,.75); padding: 2px 6px; color: var(--muted); }
 .livemap-note a { color: var(--amber); }
 .replay-btn { flex-shrink: 0; font-size: 10.5px; padding: 0 6px; }
@@ -253,6 +257,8 @@ iframe.livemap { position: absolute; inset: 0; width: 100%; height: 100%; border
 .leaflet-control-attribution a { color: #888 !important; }
 .vessel svg { overflow: visible; }
 .vessel.tanker svg { filter: drop-shadow(0 0 3px rgba(255, 176, 0, .8)); }
+.leaflet-tooltip.focus-label { background: rgba(0,0,0,.6); border: 1px solid #ffd400; color: #ffd400; font: bold 10px var(--font); letter-spacing: .5px; padding: 1px 6px; box-shadow: none; white-space: nowrap; }
+.leaflet-tooltip.focus-label::before { display: none; }
 .map-legend { background: rgba(10,10,10,.85); border: 1px solid var(--line); padding: 4px 7px; font-size: 10px; color: var(--text); line-height: 1.5; }
 .map-legend svg { vertical-align: middle; margin-right: 3px; }
 .vessel.incident svg { filter: drop-shadow(0 0 4px var(--crit)); }

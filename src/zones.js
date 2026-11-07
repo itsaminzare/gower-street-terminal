@@ -73,6 +73,17 @@ export const ZONES = {
 ZONES.HORMUZ.dirs = ["Inbound (to Gulf)", "Outbound"];
 ZONES.BAB.dirs = ["Northbound (to Red Sea)", "Southbound"];
 
+// The waterway itself, highlighted on the maps so users see where the traffic that matters passes.
+// Approximate outlines of the shipping lanes / narrows ([lat, lon] points).
+ZONES.HORMUZ.focus = { label: "STRAIT OF HORMUZ · shipping lanes",
+  poly: [[26.95, 56.05], [26.85, 56.55], [26.25, 57.1], [25.95, 56.95], [26.35, 56.45], [26.55, 56.05]] };
+ZONES.BAB.focus = { label: "BAB EL-MANDEB · narrows",
+  poly: [[12.95, 43.15], [12.9, 43.6], [12.35, 43.65], [12.3, 43.2]] };
+ZONES.SUEZ.focus = { label: "SUEZ CANAL",
+  poly: [[31.3, 32.22], [31.3, 32.42], [30.6, 32.38], [30.32, 32.5], [29.88, 32.65], [29.8, 32.5], [30.35, 32.25], [30.6, 32.17]] };
+ZONES.CAPE.focus = { label: "CAPE OF GOOD HOPE · rounding route",
+  poly: [[-34.2, 17.8], [-34.2, 18.6], [-34.75, 20.5], [-35.6, 20.5], [-35.3, 18.0]] };
+
 export function zoneOf(lat, lon) {
   for (const z of Object.values(ZONES)) {
     const [[a, b], [c, d]] = z.box;
