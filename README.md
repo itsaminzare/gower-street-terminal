@@ -1,21 +1,25 @@
 # Gower Street Terminal
 
-Â© 2026 Mohammadamin Zare, University College London. All rights reserved. No part of this software may be copied, modified or distributed without written permission; see [LICENSE](LICENSE). Third-party libraries, maps and data remain their owners' property; see [NOTICE.md](NOTICE.md).
+### 🛰 Live terminal: **[gower-street-terminal-sg.onrender.com](https://gower-street-terminal-sg.onrender.com)**
+
+*Free hosting: if nobody has visited for a while, the first load can take up to a minute while the server wakes.*
+
+© 2026 Mohammadamin Zare, University College London. All rights reserved. No part of this software may be copied, modified or distributed without written permission; see [LICENSE](LICENSE). Third-party libraries, maps and data remain their owners' property; see [NOTICE.md](NOTICE.md).
 
 A Bloomberg-style live desk for the **Strait of Hormuz** and **Bab el-Mandeb / southern Red Sea**:
 
 | Panel | Source | Notes |
 |---|---|---|
 | Live maps (4 zones) | [aisstream.io](https://aisstream.io) WebSocket (free key) | Hormuz and Suez (top), Bab el-Mandeb and Cape of Good Hope (bottom) behind tabs. Tankers in amber, heading arrows, trails, anchorages and transit gate. Rings: magenta = OFAC-sanctioned, cyan = ship-to-ship transfer, yellow dashed = GPS jump |
-| 24h replay | Saved AIS snapshots | âŸ² REPLAY on each map: scrub or play back the last 24 hours with alerts pulsing where they happened |
-| Incident alerts | Built-in detectors + news + prices + curve + IMF | Distress status, sudden stop in the lane, AIS-dark, course reversal, sanctioned vessel in a strait, suspected ship-to-ship transfer, GPS jumps / interference clusters, breaking incident headlines, Â±2% oil moves, sharp spread moves, IMF tanker transits â‰¥30% below normal |
-| Phone alerts | ntfy and/or Telegram bot | Critical alerts (or warnings too) pushed to your phone, batched; setup and test button under âš™ ALERTS |
-| Sanctions | US Treasury OFAC SDN list (â‰ˆ1,570 vessels) | Matched by IMO and MMSI, refreshed daily |
-| Futures curve & spreads | Yahoo Finance monthly contracts (delayed) | Strip under the ticker: Brent M1â€“M2, M1â€“M6, M1â€“M12, WTI M1â€“M6, Brentâ€“WTI, 3-2-1 crack. ã€° CURVE shows Brent vs WTI curves today and a month ago |
-| Chokepoint flows | IMF PortWatch daily transit calls + own gate counts | â›´ FLOWS: tanker transits per day for all four chokepoints, 7-day vs 90-day change. IMF's API is heavily rate-limited; the terminal retries with backoff and caches |
-| Disruption scenario | Public EIA / IEA estimates, all editable | âš  SCENARIO: flow lost, bypass pipelines, stock release, net shortfall, barrels lost, Cape rerouting, LNG at risk, illustrative Brent range |
+| 24h replay | Saved AIS snapshots | ⟲ REPLAY on each map: scrub or play back the last 24 hours with alerts pulsing where they happened |
+| Incident alerts | Built-in detectors + news + prices + curve + IMF | Distress status, sudden stop in the lane, AIS-dark, course reversal, sanctioned vessel in a strait, suspected ship-to-ship transfer, GPS jumps / interference clusters, breaking incident headlines, ±2% oil moves, sharp spread moves, IMF tanker transits ≥30% below normal |
+| Phone alerts | ntfy and/or Telegram bot | Critical alerts (or warnings too) pushed to your phone, batched; setup and test button under ⚙ ALERTS |
+| Sanctions | US Treasury OFAC SDN list (≈1,570 vessels) | Matched by IMO and MMSI, refreshed daily |
+| Futures curve & spreads | Yahoo Finance monthly contracts (delayed) | Strip under the ticker: Brent M1–M2, M1–M6, M1–M12, WTI M1–M6, Brent–WTI, 3-2-1 crack. 〰 CURVE shows Brent vs WTI curves today and a month ago |
+| Chokepoint flows | IMF PortWatch daily transit calls + own gate counts | ⛴ FLOWS: tanker transits per day for all four chokepoints, 7-day vs 90-day change. IMF's API is heavily rate-limited; the terminal retries with backoff and caches |
+| Disruption scenario | Public EIA / IEA estimates, all editable | ⚠ SCENARIO: flow lost, bypass pipelines, stock release, net shortfall, barrels lost, Cape rerouting, LNG at risk, illustrative Brent range |
 | News wire | Outlet RSS (Al Jazeera, BBC, CNN, Jerusalem Post, Times of Israel, Guardian, Arab News, Tehran Times, gCaptain, Splash247, OilPrice) + Google News searches | Every item is credited to its outlet. Filter by Hormuz / Red Sea / incidents |
-| Official statements | US: CENTCOM, White House, Dept. of War, State Dept. Â· Iran: IRNA, Mehr, IRGC, Foreign Ministry Â· Yemen: Houthi military spokesman and leadership Â· Gulf: Saudi Press Agency, WAM Â· UK FCDO, UK MoD, UKMTO, UN | **DIRECT** = published by the body itself. **VIA outlet** = the body's statement as reported by a named outlet (used where the body's own site blocks automated access, e.g. IRGC, Houthis, Iran MFA). Filter by side; statements about tankers/attacks raise alerts |
+| Official statements | US: CENTCOM, White House, Dept. of War, State Dept. · Iran: IRNA, Mehr, IRGC, Foreign Ministry · Yemen: Houthi military spokesman and leadership · Gulf: Saudi Press Agency, WAM · UK FCDO, UK MoD, UKMTO, UN | **DIRECT** = published by the body itself. **VIA outlet** = the body's statement as reported by a named outlet (used where the body's own site blocks automated access, e.g. IRGC, Houthis, Iran MFA). Filter by side; statements about tankers/attacks raise alerts |
 | Social chatter | X (paid API token), Bluesky, Reddit, public Telegram channels | Marked as unverified |
 | Price ticker | Yahoo Finance chart API (delayed) | Brent, WTI, Henry Hub, TTF, ULSD, RBOB, gold, tanker equities |
 | AI desk analyst | Claude (`claude-opus-5-5`) | BRIEF: structured brief every 15 min and shortly after any critical alert. ASK: chat about the live picture (it gets Brent's intraday prices to line up moves with headlines). Attributes every claim to its source |
