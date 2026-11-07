@@ -45,30 +45,46 @@
   function initMaps(zones) {
     for (const z of Object.values(zones)) {
       if (maps[z.id]) continue;
-      const m = L.map(`map-${z.id}`, { zoomControl: true, attributionControl: true, worldCopyJump: false }).setView(z.center, z.zoom);
-      const esri = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
-      L.tileLayer(esri + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16, attribution: "Tiles © Esri, HERE, Garmin, © OpenStreetMap" }).addTo(m);
-      L.tileLayer(esri + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16 }).addTo(m);
-      L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", { maxZoom: 14, opacity: 0.6, attribution: "OpenSeaMap" }).addTo(m);
-      L.rectangle(z.box, { color: "#c98a2a", weight: 1.5, dashArray: "6 5", fill: false, interactive: false }).addTo(m);
-      // The waterway itself: bright outline + light fill + label, so the important area is obvious
+      const m = L.map(`map-${z.id}`, { zoomControl: true, attributionControl: true, worldCopyJump: false, zoomSnap: 0.25, zoomDelta: 0.5 }).setView(z.center, z.zoom);
+      // Nautical basemap: Esri Ocean (bathymetry, coastlines) rendered dark by a CSS filter (see .base-ocean),
+      // with Esri's light reference labels on top and OpenSeaMap seamarks
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}",
+        { maxZoom: 13, maxNativeZoom: 13, className: "base-ocean", attribution: "Tiles © Esri, GEBCO, NOAA, Garmin, HERE · © OpenStreetMap" }).addTo(m);
+      L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { maxZoom: 16, className: "base-labels" }).addTo(m);
+      L.tileLayer("https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png", { maxZoom: 14, opacity: 0.5, attribution: "OpenSeaMap" }).addTo(m);
+      L.rectangle(z.box, { color: "#8a96a3", weight: 1, opacity: 0.6, dashArray: "4 4", fill: false, interactive: false }).addTo(m);
+      // The waterway itself: crisp outline, faint fill, small label
       if (z.focus) {
-        L.polygon(z.focus.poly, { color: "#ffd400", weight: 2.5, opacity: 0.95, fillColor: "#ffd400", fillOpacity: 0.07, dashArray: null, interactive: false })
-          .bindTooltip(z.focus.label, { permanent: true, direction: "center", className: "focus-label", interactive: false }).addTo(m);
+        L.polygon(z.focus.poly, { color: "#e8c547", weight: 1.75, opacity: 0.95, fillColor: "#e8c547", fillOpacity: 0.06, interactive: false }).addTo(m);
+        // The waterway's name sits in a caption in the corner, not on the water where the ships are
+        const cap = L.control({ position: "topright" });
+        cap.onAdd = () => Object.assign(L.DomUtil.create("div", "map-caption"), { innerHTML: `<i></i>${esc(z.focus.label)}` });
+        cap.addTo(m);
+        // Open on the waterway, not on the whole watched box, so ships are big enough to read
+        m.fitBounds(L.latLngBounds(z.focus.poly).pad(0.35), { animate: false });
       }
-      L.polyline(z.gate, { color: "#ffa028", weight: 2, opacity: 0.7 }).bindTooltip("Transit gate").addTo(m);
-      for (const a of z.anchorages) L.circle([a.lat, a.lon], { radius: a.km * 1000, color: "#2c5d8a", weight: 1, fillOpacity: 0.04 }).bindTooltip(a.name).addTo(m);
+      L.polyline(z.gate, { color: "#e8c547", weight: 1.5, opacity: 0.8, dashArray: "2 4" }).bindTooltip("Transit gate").addTo(m);
+      for (const a of z.anchorages) L.circle([a.lat, a.lon], { radius: a.km * 1000, color: "#5f7d99", weight: 1, opacity: 0.6, fillOpacity: 0.03, dashArray: "2 3" }).bindTooltip(a.name).addTo(m);
       maps[z.id] = m;
       layers[z.id] = L.layerGroup().addTo(m);
-      // Legend
-      const legend = L.control({ position: "topright" });
+      // Ship names appear once zoomed in enough to read them
+      const nameClass = () => m.getContainer().classList.toggle("show-names", m.getZoom() >= 9.5);
+      m.on("zoomend", nameClass); nameClass();
+      // Compact key, collapsed to one line until hovered
+      const legend = L.control({ position: "bottomleft" });
+      const sw = (svg) => `<svg width="14" height="14" viewBox="-7 -7 14 14">${svg}</svg>`;
       legend.onAdd = () => Object.assign(L.DomUtil.create("div", "map-legend"), { innerHTML:
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="7.5" fill="#ffb000" fill-opacity=".2"/><path d="M0,-6 L4,5 L0,2.5 L-4,5 Z" fill="#ffb000" stroke="#fff" stroke-width=".8"/></svg> Tanker</div>` +
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><path d="M0,-4.5 L3,3.5 L0,2 L-3,3.5 Z" fill="#5d8fc4"/></svg> Other ship</div>` +
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="2.6" fill="#8a8a8a" fill-opacity=".3" stroke="#bbb" stroke-width=".8"/></svg> Type not yet known</div>` +
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><circle r="6" fill="none" stroke="${RING.sanctioned}" stroke-width="2"/></svg> Sanctioned</div>` +
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><rect x="-7" y="-5" width="14" height="10" fill="#ffd400" fill-opacity=".15" stroke="#ffd400" stroke-width="1.5"/></svg> Key waterway</div>` +
-        `<div><svg width="16" height="16" viewBox="-8 -8 16 16"><rect x="-7" y="-5" width="14" height="10" fill="none" stroke="#c98a2a" stroke-dasharray="3 2"/></svg> Watched area</div>` });
+        `<div class="lg-h">Key</div><div class="lg-b">` +
+        `<span>${sw(`<path d="M0,-6 L4,5 L0,3 L-4,5 Z" fill="${COLORS.Tanker}" stroke="#0b0d10" stroke-width=".8"/>`)}Tanker</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Cargo}" stroke="#0b0d10" stroke-width=".8"/>`)}Cargo</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Passenger}" stroke="#0b0d10" stroke-width=".8"/>`)}Passenger</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Unknown}" stroke="#0b0d10" stroke-width=".8"/>`)}Type unknown</span>` +
+        `<span>${sw(`<rect x="-3" y="-3" width="6" height="6" transform="rotate(45)" fill="#c9d1d9" stroke="#0b0d10" stroke-width=".8"/>`)}Stationary</span>` +
+        `<span>${sw(`<circle r="5.5" fill="none" stroke="${RING.sanctioned}" stroke-width="1.6"/>`)}Sanctioned</span>` +
+        `<span>${sw(`<circle r="5.5" fill="none" stroke="${RING.sts}" stroke-width="1.6"/>`)}Ship-to-ship</span>` +
+        `<span>${sw(`<circle r="5.5" fill="none" stroke="${RING.spoof}" stroke-width="1.4" stroke-dasharray="2 1.5"/>`)}GPS jump</span>` +
+        `<span>${sw(`<rect x="-6" y="-4" width="12" height="8" fill="#e8c547" fill-opacity=".12" stroke="#e8c547" stroke-width="1.2"/>`)}Key waterway</span>` +
+        `<span>${sw(`<rect x="-6" y="-4" width="12" height="8" fill="none" stroke="#8a96a3" stroke-dasharray="2 2"/>`)}Watched area</span></div>` });
       legend.addTo(m);
     }
   }
@@ -217,31 +233,31 @@
 
   function panelFor(zone) { return [...document.querySelectorAll(".map-panel")].find((p) => p.dataset.zones.split(",").includes(zone)); }
 
-  const COLORS = { Tanker: "#ffa028", Cargo: "#5d8fc4", Passenger: "#b07cd8", Military: "#ff4d4d", "Law enf.": "#ff4d4d", Unknown: "#8a8a8a" };
+  const COLORS = { Tanker: "#f29d38", Cargo: "#5aa9e6", Passenger: "#b48ef0", Military: "#ff5c5c", "Law enf.": "#ff5c5c", Unknown: "#9aa4ae" };
   // Rings around the hull mark special status: magenta = OFAC-sanctioned, cyan = ship-to-ship transfer, yellow dashed = GPS jump
   const RING = { sanctioned: "#ff3df2", sts: "#2ee6e6", spoof: "#ffd400" };
   // Tankers: large bright arrow with a glow and white outline, drawn above everything else.
   // Other ships: small muted markers. Unidentified ships (type not received yet): faint grey outlines.
   function vesselIcon(v) {
-    const tanker = v.cls === "Tanker", unknown = v.cls === "Unknown";
-    const color = v.incident ? "#ff3b3b" : tanker ? "#ffb000" : COLORS[v.cls] || "#8a8a8a";
+    const tanker = v.cls === "Tanker";
+    const color = v.incident ? "#ff4d4d" : COLORS[v.cls] || COLORS.Unknown;
     const rot = Math.round((v.hdg ?? v.cog ?? 0) / 5) * 5; // matches iconKey, so redraws only happen on visible changes
     const moving = (v.sog ?? 0) > 0.8;
-    let shape, style;
-    if (tanker) {
-      shape = moving ? `<path d="M0,-13 L8,10 L0,5 L-8,10 Z"/>` : `<rect x="-6" y="-9" width="12" height="18" rx="5"/>`;
-      style = v.dark ? `fill-opacity=".45" stroke="#ff3b3b" stroke-width="2" stroke-dasharray="3 2"` : `fill-opacity="1" stroke="#fff" stroke-width="1.6"`;
-    } else {
-      shape = moving ? `<path d="M0,-6 L4,5 L0,2.5 L-4,5 Z"/>` : `<circle r="2.6"/>`;
-      style = unknown ? `fill-opacity=".25" stroke="#bbb" stroke-width=".8"` : `fill-opacity="${v.dark ? 0.3 : 0.75}" stroke="#000" stroke-width=".6"`;
-    }
-    const glow = tanker && !v.dark ? `<circle r="15" fill="${color}" fill-opacity=".18"/><circle r="15" fill="none" stroke="${color}" stroke-opacity=".55" stroke-width="1"/>` : "";
+    // Every ship is a readable hull arrow (stationary: a diamond); tankers are larger. Dark outline keeps them
+    // visible on both sea and land; AIS-dark ships are drawn hollow and dashed.
+    const k = tanker ? 1.35 : 1;
+    const shape = moving
+      ? `<path d="M0,${-9 * k} L${6 * k},${7 * k} L0,${4 * k} L${-6 * k},${7 * k} Z"/>`
+      : `<rect x="${-4 * k}" y="${-4 * k}" width="${8 * k}" height="${8 * k}" transform="rotate(45)"/>`;
+    const style = v.dark ? `fill-opacity=".15" stroke="${color}" stroke-width="1.6" stroke-dasharray="2.5 2"` : `fill-opacity="1" stroke="#0b0d10" stroke-width="1.1"`;
+    const halo = tanker && !v.dark ? `<circle r="${12 * k}" fill="${color}" fill-opacity=".14"/>` : "";
     const rings = [
-      v.sanctioned && `<circle r="17" fill="none" stroke="${RING.sanctioned}" stroke-width="2.5"/>`,
-      v.sts && `<circle r="20" fill="none" stroke="${RING.sts}" stroke-width="2"/>`,
-      v.spoof && `<circle r="18.5" fill="none" stroke="${RING.spoof}" stroke-width="1.8" stroke-dasharray="3 2"/>`,
+      v.sanctioned && `<circle r="15" fill="none" stroke="${RING.sanctioned}" stroke-width="2"/>`,
+      v.sts && `<circle r="18" fill="none" stroke="${RING.sts}" stroke-width="1.8"/>`,
+      v.spoof && `<circle r="16.5" fill="none" stroke="${RING.spoof}" stroke-width="1.6" stroke-dasharray="3 2"/>`,
     ].filter(Boolean).join("");
-    const size = tanker || rings ? 44 : 16;
+    const glow = halo;
+    const size = tanker || rings ? 40 : 24;
     return L.divIcon({
       className: `vessel${tanker ? " tanker" : ""}${v.incident ? " incident" : ""}`, iconSize: [size, size], iconAnchor: [size / 2, size / 2],
       html: `<svg width="${size}" height="${size}" viewBox="${-size / 2} ${-size / 2} ${size} ${size}">${glow}${rings}<g transform="rotate(${rot})" fill="${color}" ${style}>${shape}</g></svg>`,
@@ -278,12 +294,12 @@
     let mk = markers.get(v.mmsi);
     if (!z || !layers[z] || !visible(v)) { if (mk) { mk.m.remove(); mk.trail.remove(); markers.delete(v.mmsi); } return; }
     const key = iconKey(v);
-    const trailStyle = v.cls === "Tanker" ? { color: "#ffb000", weight: 2, opacity: 0.6 } : { color: COLORS[v.cls] || "#888", weight: 1, opacity: 0.25 };
+    const trailStyle = v.cls === "Tanker" ? { color: COLORS.Tanker, weight: 1.5, opacity: 0.55 } : { color: COLORS[v.cls] || COLORS.Unknown, weight: 1, opacity: 0.3 };
     if (!mk) {
       mk = { key, m: L.marker([v.lat, v.lon], { icon: vesselIcon(v), zIndexOffset: v.cls === "Tanker" ? 1000 : 0 }).bindPopup(() => popup(state.vessels.get(v.mmsi))),
              trail: L.polyline(v.track || [], trailStyle) };
       mk.m.addTo(layers[z]); mk.trail.addTo(layers[z]);
-      mk.m.bindTooltip(() => { const s = state.vessels.get(v.mmsi) || v; return `${esc(s.name || s.mmsi)} · ${s.sog?.toFixed(1) ?? "?"} kn`; }, { direction: "top", offset: [0, -6] });
+      bindLabel(mk, v);
       markers.set(v.mmsi, mk);
     } else {
       mk.m.setLatLng([v.lat, v.lon]);
@@ -293,9 +309,17 @@
         mk.key = key;
         mk.m.setIcon(vesselIcon(v)); mk.m.setZIndexOffset(v.cls === "Tanker" ? 1000 : 0);
         mk.trail.setStyle(trailStyle);
+        if (mk.labelFor !== `${v.cls === "Tanker"}${v.name}`) bindLabel(mk, v);
       }
       if (mk.m.isPopupOpen()) mk.m.setPopupContent(popup(v));
     }
+  }
+  // Tankers carry a name label (shown only when zoomed in, see .show-names); other ships show it on hover
+  function bindLabel(mk, v) {
+    mk.m.unbindTooltip();
+    mk.labelFor = `${v.cls === "Tanker"}${v.name}`;
+    if (v.cls === "Tanker") mk.m.bindTooltip(esc(v.name || String(v.mmsi)), { permanent: true, direction: "right", offset: [12, 0], className: "vname", interactive: false });
+    else mk.m.bindTooltip(() => { const s = state.vessels.get(v.mmsi) || v; return `${esc(s.name || s.mmsi)} · ${s.sog?.toFixed(1) ?? "?"} kn`; }, { direction: "top", offset: [0, -8] });
   }
   // Everything that changes a marker's appearance (heading rounded to 5°)
   function iconKey(v) {

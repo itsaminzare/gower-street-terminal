@@ -717,6 +717,34 @@ button.on { background: #2a3442; color: #fff; border-color: #3d4b5e; }
 .cr-ev { border-left: 2px solid var(--down); background: transparent; }
 .cr-charts .mc, .strip { border-radius: 0; }
 
+/* ---- own map: nautical dark basemap, readable ships, compact key ---- */
+.leaflet-container { background: #0c1621; font: 11px var(--ui); }
+/* Esri Ocean is a light bathymetric chart; inverted and hue-shifted it becomes a dark navy chart with depth shading */
+.leaflet-tile.base-ocean, .base-ocean img { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(1.05) saturate(.55); }
+.base-labels { opacity: .9; }
+.vessel svg { overflow: visible; }
+.vessel.tanker svg { filter: none; }
+.vessel.incident svg { filter: drop-shadow(0 0 3px rgba(255, 77, 77, .9)); }
+.leaflet-tooltip.focus-label { background: rgba(11, 14, 18, .85); border: 1px solid rgba(232, 197, 71, .7); color: #e8c547; font: 600 10px var(--ui);
+  letter-spacing: .6px; text-transform: uppercase; padding: 1px 6px; box-shadow: none; border-radius: 0; }
+.leaflet-tooltip.vname { display: none; background: transparent; border: 0; box-shadow: none; padding: 0; color: #f0d9b5;
+  font: 600 10px var(--ui); letter-spacing: .3px; text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 4px #000; }
+.leaflet-tooltip.vname::before { display: none; }
+.show-names .leaflet-tooltip.vname { display: block; }
+.leaflet-tooltip { background: #15181c; color: var(--text); border: 1px solid var(--line-2); border-radius: 0; box-shadow: none; font: 11px var(--ui); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #15181c; border: 1px solid var(--line-2); }
+.leaflet-popup-content b { color: #fff; }
+.leaflet-bar a, .leaflet-bar a:hover { background: #15181c; color: var(--text); border-color: var(--line-2); border-radius: 0 !important; width: 24px; height: 24px; line-height: 24px; }
+.leaflet-bar { border: 1px solid var(--line-2) !important; border-radius: 0 !important; box-shadow: none !important; }
+.map-caption { background: rgba(13, 16, 19, .9); border: 1px solid var(--line-2); padding: 2px 8px; font: 600 10px var(--ui); letter-spacing: .6px;
+  text-transform: uppercase; color: #e8c547; display: flex; align-items: center; gap: 6px; }
+.map-caption i { width: 10px; height: 7px; border: 1.5px solid #e8c547; background: rgba(232, 197, 71, .15); }
+.map-legend { background: rgba(13, 16, 19, .9); border: 1px solid var(--line-2); padding: 3px 7px; font: 10px var(--ui); color: var(--text-2); max-width: 170px; }
+.map-legend .lg-h { font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--muted); cursor: default; }
+.map-legend .lg-b { display: none; padding-top: 3px; }
+.map-legend:hover .lg-b { display: grid; grid-template-columns: 1fr; gap: 2px; }
+.map-legend .lg-b span { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+
 /* ---- smaller screens: stack everything and scroll ---- */
 @media (max-width: 1200px) {
   html, body { overflow: auto; }
