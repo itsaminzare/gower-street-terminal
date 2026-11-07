@@ -1,6 +1,13 @@
-# Gower Street Terminal
+<p align="center">
+  <img src="docs/logo.png" alt="Gower Street" width="440">
+</p>
 
-**Live: [gower-street-terminal-sg.onrender.com](https://gower-street-terminal-sg.onrender.com)** · *free hosting, so the first load after a quiet spell can take up to a minute*
+<h1 align="center">Gower Street Terminal</h1>
+
+<p align="center">
+  <b>Live: <a href="https://gower-street-terminal-sg.onrender.com">gower-street-terminal-sg.onrender.com</a></b><br>
+  <i>Free hosting, so the first load after a quiet spell can take up to a minute.</i>
+</p>
 
 A real-time maritime-risk terminal for the world's oil chokepoints: the **Strait of Hormuz**, **Bab el-Mandeb**, the **Suez Canal** and the **Cape of Good Hope**. It brings together live shipping data, verified news and official statements, energy prices, and an AI trading agent whose every proposal is computed, risk-checked and audited in code, and approved by a human.
 
