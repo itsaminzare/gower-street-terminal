@@ -560,7 +560,7 @@
     if (a.running) html += `<div class="muted" style="margin-bottom:6px">Updating…</div>`;
     if (!b) {
       html += a.enabled ? `<div class="empty">First brief will appear shortly after startup.</div>` :
-        `<div class="empty">AI analyst is off.<br><br>${esc(a.error || "")}<br><br>Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> and restart.</div>`;
+        `<div class="empty">AI analyst is off.<br><br>${esc(a.error || "")}<br><br>Add <code>ANTHROPIC_API_KEY</code>, or <code>GEMINI_API_KEY</code> with <code>AI_PROVIDER=gemini</code>, to <code>.env</code> and restart.</div>`;
       if (a.error && a.enabled) html += `<div style="color:#ff6b6b">${esc(a.error)}</div>`;
       el.innerHTML = html; return;
     }
@@ -610,7 +610,7 @@
   function renderChat() {
     const log = $("#ask-log");
     log.innerHTML = chat.length ? chat.map((m) => `<div class="msg ${m.role}"><div class="who">${m.role === "user" ? "YOU" : "ANALYST"}</div><div class="txt">${esc(m.content)}${m.pending ? '<span class="cursor">▍</span>' : ""}</div></div>`).join("")
-      : `<div class="empty">${state.analyst?.enabled ? "Ask anything about the live picture. Each question is answered from the current feeds: AIS, alerts, news, official statements, prices, the futures curve and IMF transit data." : "AI analyst is off. Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> and restart to use chat."}</div>`;
+      : `<div class="empty">${state.analyst?.enabled ? "Ask anything about the live picture. Each question is answered from the current feeds: AIS, alerts, news, official statements, prices, the futures curve and IMF transit data." : "AI analyst is off. Add an AI key to <code>.env</code> (see Alerts) and restart to use chat."}</div>`;
     log.scrollTop = log.scrollHeight;
   }
   $("#ask-form").addEventListener("submit", async (e) => {
