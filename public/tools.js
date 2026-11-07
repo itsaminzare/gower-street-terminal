@@ -11,7 +11,7 @@
     charts.forEach((c) => c.remove()); charts = [];
     $("#tool-modal").hidden = false;
     $("#tm-body").innerHTML = `<div class="muted" style="padding:20px">Loading…</div>`;
-    ({ flows: openFlows, curve: openCurve, scenario: openScenario, settings: openSettings })[kind]();
+    ({ flows: openFlows, curve: openCurve, scenario: openScenario, settings: openSettings, ...(window.GST.extraTools || {}) })[kind]();
   }
   function close() { $("#tool-modal").hidden = true; charts.forEach((c) => c.remove()); charts = []; }
   function head(title, sub) { $("#tm-title").textContent = title; $("#tm-sub").textContent = sub || ""; }
@@ -32,6 +32,9 @@
     handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: { time: true, price: false }, axisDoubleClickReset: true },
     crosshair: { mode: LWC.CrosshairMode.Magnet },
   });
+
+  // Shared with research.js (extra tool windows) and desk.js
+  Object.assign(window.GST, { openTool: open, toolHead: head, baseChart, trackChart: (c) => charts.push(c), extraTools: {} });
 
   // ---------------------------------------------------------------- FLOWS
   const ZNAME = { HORMUZ: "Strait of Hormuz", BAB: "Bab el-Mandeb", SUEZ: "Suez Canal", CAPE: "Cape of Good Hope" };

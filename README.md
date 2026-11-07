@@ -6,6 +6,36 @@
 
 © 2026 Mohammadamin Zare, University College London. All rights reserved. No part of this software may be copied, modified or distributed without written permission; see [LICENSE](LICENSE). Third-party libraries, maps and data remain their owners' property; see [NOTICE.md](NOTICE.md).
 
+## The pitch: from a ship going dark to a sized trade, with a scorecard
+
+About a fifth of the world's oil passes through the Strait of Hormuz, and the Red Sea route carries a large share of Europe–Asia trade. When something happens there, a trader has to answer four questions fast: **what happened, is it real, what is it worth, and how will I know if I'm wrong?** Gower Street Terminal answers all four on one screen.
+
+1. **What happened:** live ships in four chokepoints (Hormuz, Bab el-Mandeb, Suez, Cape of Good Hope), automated incident detection (ships stopping in the lane, going dark, distress signals, GPS jamming, sanctioned tankers, ship-to-ship transfers), IMF transit counts, credited news, official statements from every side, and social chatter.
+2. **Is it real:** every claim is attributed; official statements are labelled by side; social posts are marked unverified; the AI analyst grades each development *confirmed / likely / unverified*.
+3. **What is it worth:** the **Trade desk** turns the picture into 0–3 specific paper trades (Brent, WTI, the Brent–WTI spread, the refining crack, tanker equities…). Each has an entry, stop, target, horizon, probability and position size, and each cites a **historical base rate**.
+4. **How will I know if I'm wrong:** the server, not the AI, fixes entries at the live price, marks every idea to market, closes it on stop, target or expiry, and keeps score in **R** (multiples of the risk taken), plus a hit rate and a **Brier score** for calibration. A risk check rejects any idea whose own probability and reward:risk imply negative expected value.
+
+### The research behind it (📊 Research)
+
+An event study of **20 Gulf / Red Sea incidents since 2019** (tanker attacks, seizures, carrier suspensions, state strikes, Abqaiq), measuring Brent, WTI, the crack spread, the Brent–WTI spread, tanker stocks and gold 1, 5 and 20 trading days later against every day since 2019. It is then tested **out of sample**: at each event, the rule may only use earlier events. What survives:
+
+- **Next-day oil direction after a headline is a coin flip** (5/14 out of sample). The desk does not sell it as an edge.
+- **Escalation premiums fade.** After state strikes, Brent's median move over 20 trading days is **−3.8%** (8 of 11 fell), against **+1.3%** for an average 20-day window. Trading the 20-day history of earlier events was right **9/14** times out of sample. This is a small sample: suggestive, not proof.
+- **Tanker stocks jump after shipping attacks in-sample** (Frontline +4.1% median over 5 days), but this **did not** survive out of sample, so the desk treats it as weak.
+
+The desk's prompt carries these findings, so its ideas are anchored to what has actually worked, with the sample size stated.
+
+### ▶ Red Sea 2024: a 90-second demo
+
+A replay of the 2023-24 Red Sea crisis day by day:
+- IMF PortWatch transits fall at Bab el-Mandeb (**−39%** by January) and climb around the Cape (**+42%**);
+- Brent and Frontline move alongside;
+- each incident appears with **what the playbook knew at the time** (walk-forward, earlier events only) and then what actually happened.
+
+*Paper trading and research only; not investment advice. Prices are delayed.* Rebuild the study with `node scripts/build-research.mjs`.
+
+---
+
 A Bloomberg-style live desk for the **Strait of Hormuz** and **Bab el-Mandeb / southern Red Sea**:
 
 | Panel | Source | Notes |
@@ -23,6 +53,8 @@ A Bloomberg-style live desk for the **Strait of Hormuz** and **Bab el-Mandeb / s
 | Social chatter | X (paid API token), Bluesky, Reddit, public Telegram channels | Marked as unverified |
 | Price ticker | Yahoo Finance chart API (delayed) | Brent, WTI, Henry Hub, TTF, ULSD, RBOB, gold, tanker equities |
 | AI desk analyst | Claude (`claude-opus-5-5`) | BRIEF: structured brief every 15 min and shortly after any critical alert. ASK: chat about the live picture (it gets Brent's intraday prices to line up moves with headlines). Attributes every claim to its source |
+| Trade desk | Claude + event study + live prices | TRADE DESK tab: paper trade ideas with entry, stop, target, horizon, P(win), EV and size; live P&L in R; hit rate and Brier score. Runs every 2 h, after critical alerts, or on RUN NOW |
+| Research | `public-data/research.json` (Yahoo daily closes, IMF PortWatch) | 📊 RESEARCH: event study and walk-forward test. ▶ RED SEA 2024: animated crisis replay |
 
 ## Run
 
@@ -55,9 +87,11 @@ The `Dockerfile` runs the same setup on any Docker host (port 7860); `deploy/pus
 | `ANALYST_ALERT_DEBOUNCE_MIN` | 20 | Min gap before a critical alert triggers another brief |
 | `ASK_DAILY_LIMIT` | 30 | Chat questions per day, all visitors combined |
 | `ASK_PER_VISITOR_LIMIT` | 5 | Chat questions per visitor per day |
-| `MANUAL_RUN_MIN_INTERVAL_MIN` | 15 | Cooldown on the RUN NOW button |
+| `MANUAL_RUN_MIN_INTERVAL_MIN` | 15 | Cooldown on the RUN NOW button (brief and trade desk each) |
+| `DESK_INTERVAL_MIN` | 120 | Minutes between scheduled trade-desk runs |
+| `DESK_DAILY_MAX` | 12 | Max trade-desk runs per day |
 
-Render asks for `AISSTREAM_API_KEY`, `ANTHROPIC_API_KEY` and `NTFY_TOPIC` when you create the service. Every push to `main` redeploys automatically. Saved history and alerts reset when the service restarts (no persistent disk). Test notifications can only be sent from the machine running the server.
+Render asks for `AISSTREAM_API_KEY`, `ANTHROPIC_API_KEY` and `NTFY_TOPIC` when you create the service. Saved history, alerts and the desk's paper-trade record reset when the service restarts (no persistent disk). Test notifications can only be sent from the machine running the server.
 
 ## Keys
 

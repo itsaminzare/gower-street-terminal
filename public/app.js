@@ -535,12 +535,13 @@
       ${a.error ? `<div style="color:#ff6b6b">Last run failed: ${esc(a.error)}</div>` : ""}`;
     el.innerHTML = html;
   }
+  let anTab = "brief";
   $("#run-analyst").addEventListener("click", async () => {
-    const r = await fetch("/api/analyst/run", { method: "POST" });
-    if (r.status === 429) {
-      const btn = $("#run-analyst"), msg = (await r.json()).error;
-      btn.textContent = "COOLING DOWN"; btn.title = msg;
-      setTimeout(() => { btn.textContent = "RUN NOW"; btn.title = ""; }, 4000);
+    const r = await fetch(anTab === "desk" ? "/api/desk/run" : "/api/analyst/run", { method: "POST" });
+    if (!r.ok) {
+      const btn = $("#run-analyst"), msg = (await r.json().catch(() => ({}))).error || `HTTP ${r.status}`;
+      btn.textContent = r.status === 429 ? "Cooling down" : "Not available"; btn.title = msg;
+      setTimeout(() => { btn.textContent = "Run now"; btn.title = ""; }, 4000);
     }
   });
 
@@ -549,8 +550,10 @@
   $("#an-tabs").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
     $("#an-tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
-    const ask = b.dataset.t === "ask";
-    $("#analyst").hidden = ask; $("#ask").hidden = !ask; $("#run-analyst").hidden = ask;
+    anTab = b.dataset.t;
+    const ask = anTab === "ask";
+    $("#analyst").hidden = anTab !== "brief"; $("#desk").hidden = anTab !== "desk"; $("#ask").hidden = !ask; $("#run-analyst").hidden = ask;
+    if (anTab === "desk") window.dispatchEvent(new Event("gst:desk"));
     if (ask) { renderChat(); refreshQuota(); $("#ask-input").focus(); }
   });
   // Shared deployments cap chat use; show what's left
@@ -614,7 +617,8 @@
       s.vessels.forEach(upsertVessel);
       state.official = s.official || []; renderOfficial();
       state.alerts = s.alerts; state.news = s.news; state.social = s.social; state.prices = s.prices;
-      state.analyst = s.analyst; state.status = s.status; state.curve = s.curve;
+      state.analyst = s.analyst; state.status = s.status; state.curve = s.curve; state.desk = s.desk;
+      window.dispatchEvent(new Event("gst:desk"));
       renderAlerts(); renderNews(); renderSocial(); renderPrices(); renderAnalyst(); renderStats(); renderFeeds(); renderSpreads(); feedCounts();
     });
     es.addEventListener("curve", (e) => { state.curve = JSON.parse(e.data); renderSpreads(); });
@@ -638,6 +642,7 @@
     });
     es.addEventListener("prices", (e) => { state.prices = JSON.parse(e.data); renderPrices(); });
     es.addEventListener("analyst", (e) => { state.analyst = JSON.parse(e.data); renderAnalyst(); });
+    es.addEventListener("desk", (e) => { state.desk = JSON.parse(e.data); window.dispatchEvent(new Event("gst:desk")); });
     es.addEventListener("status", (e) => { state.status = JSON.parse(e.data); renderStats(); renderFeeds(); });
     es.onerror = () => { $("#feeds").innerHTML = `<span class="pill bad">SERVER DISCONNECTED — reconnecting…</span>`; };
   }

@@ -63,7 +63,7 @@ const SCHEMA = {
   },
 };
 
-function snapshot() {
+export function snapshot() {
   const hrs = (t) => ((Date.now() - Date.parse(t)) / 3600000).toFixed(1) + "h ago";
   return JSON.stringify({
     generated_utc: new Date().toISOString(),
@@ -94,6 +94,20 @@ let MODEL = "claude-opus-5-5";
 function streamRequest(params) {
   if (/haiku/.test(MODEL)) return client.messages.stream({ model: MODEL, ...params });
   return client.beta.messages.stream({ model: MODEL, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", ...params });
+}
+/** One structured (JSON-schema) completion, used by the trade desk. Returns the parsed object + model id. */
+export async function structuredCall({ system, user, schema, maxTokens = 16000 }) {
+  if (!analyst.enabled) throw new Error(analyst.error || "AI analyst is not configured");
+  const stream = streamRequest({
+    max_tokens: maxTokens,
+    output_config: { effort: "medium", format: { type: "json_schema", schema } },
+    system,
+    messages: [{ role: "user", content: user }],
+  });
+  const msg = await stream.finalMessage();
+  if (msg.stop_reason === "refusal") throw new Error(`Model declined (${msg.stop_details?.category ?? "no category"})`);
+  if (msg.stop_reason === "max_tokens") throw new Error("Output was cut off (max_tokens)");
+  return { data: JSON.parse(msg.content.filter((b) => b.type === "text").map((b) => b.text).join("")), model: msg.model };
 }
 // Daily budget for briefs (all triggers combined), so a public deployment's Claude bill stays bounded
 const runs = { day: "", count: 0, max: Infinity };

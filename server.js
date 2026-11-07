@@ -22,6 +22,7 @@ const cv = await import("./src/curve.js");
 const fl = await import("./src/flows.js");
 const nt = await import("./src/notify.js");
 const an = await import("./src/analyst.js");
+const dk = await import("./src/desk.js");
 
 const env = process.env;
 const PORT = Number(env.PORT) || 8787;
@@ -38,6 +39,7 @@ cv.startCurve();
 fl.startFlows();
 nt.startNotify(env);
 an.startAnalyst(env);
+dk.startDesk(env);
 
 function status() {
   return { ais: ais.aisStatus, news: newsMod.newsStatus, official: off.officialStatus, social: social.socialStatus, prices: px.priceStatus,
@@ -58,6 +60,7 @@ function snapshot() {
     prices: px.prices,
     curve: cv.curve,
     analyst: an.analyst,
+    desk: dk.deskView(),
     status: status(),
   };
 }
@@ -66,7 +69,7 @@ function snapshot() {
 const clients = new Set();
 function send(res, event, data) { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); }
 function broadcast(event, data) { for (const c of clients) send(c, event, data); }
-for (const ev of ["vessels", "vessel-removed", "alert", "news", "social", "official", "prices", "analyst", "curve"]) {
+for (const ev of ["vessels", "vessel-removed", "alert", "news", "social", "official", "prices", "analyst", "curve", "desk"]) {
   bus.on(ev, (d) => broadcast(ev, d));
 }
 bus.on("flows", () => broadcast("flows-updated", { updated: fl.flowsStatus.updated }));
@@ -95,7 +98,7 @@ const LIMITS = {
   askConcurrent: num(env.ASK_CONCURRENT_LIMIT, 2),
   manualRunMin: num(env.MANUAL_RUN_MIN_INTERVAL_MIN, 0), // minimum minutes between RUN NOW presses
 };
-const quota = { day: "", used: 0, perIp: new Map(), active: 0, lastManualRun: 0 };
+const quota = { day: "", used: 0, perIp: new Map(), active: 0, lastManualRun: 0, lastDeskRun: 0 };
 function resetQuotaIfNewDay() {
   const day = new Date().toISOString().slice(0, 10);
   if (quota.day !== day) Object.assign(quota, { day, used: 0, perIp: new Map() });
@@ -146,6 +149,21 @@ http.createServer(async (req, res) => {
     quota.lastManualRun = Date.now();
     an.runAnalyst("manual request from desk");
     return json(res, 202, { enabled: an.analyst.enabled, error: an.analyst.error });
+  }
+  if (p === "/api/desk") return json(res, 200, dk.deskView());
+  if (p === "/api/desk/run" && req.method === "POST") {
+    if (!dk.desk.enabled) return json(res, 400, { error: dk.desk.error || "Trade desk is not configured" });
+    const waitMin = LIMITS.manualRunMin - (Date.now() - quota.lastDeskRun) / 60_000;
+    if (waitMin > 0) return json(res, 429, { error: `The desk ran recently. Try again in ${Math.ceil(waitMin)} min.` });
+    if (dk.desk.running) return json(res, 409, { error: "The desk is already working on it." });
+    quota.lastDeskRun = Date.now();
+    dk.runDesk("manual request from desk").then((r) => r?.error && log("desk", r.error));
+    return json(res, 202, { started: true });
+  }
+  if (p === "/api/research") {
+    if (!dk.research) return json(res, 404, { error: "research data missing" });
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" });
+    return res.end(JSON.stringify(dk.research));
   }
   if (p === "/api/ask" && req.method === "POST") {
     let body;
