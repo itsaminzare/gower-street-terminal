@@ -60,8 +60,12 @@
         const cap = L.control({ position: "topright" });
         cap.onAdd = () => Object.assign(L.DomUtil.create("div", "map-caption"), { innerHTML: `<i></i>${esc(z.focus.label)}` });
         cap.addTo(m);
-        // Open on the waterway, not on the whole watched box, so ships are big enough to read
-        m.fitBounds(L.latLngBounds(z.focus.poly).pad(0.35), { animate: false });
+        // Open on the waterway, not on the whole watched box, so ships are big enough to read.
+        // A map laid out while its panel had no size ends up at zoom 0 (the whole world in a few pixels),
+        // so the fit is re-applied whenever the map gets a real size and is still zoomed far out.
+        m._fit = () => { const s = m.getSize(); if (s.x > 50 && s.y > 50) { m.fitBounds(L.latLngBounds(z.focus.poly).pad(0.35), { animate: false }); m._fitted = true; } };
+        m._fit();
+        m.on("resize", () => { if (!m._fitted || m.getZoom() < 4) m._fit(); });
       }
       L.polyline(z.gate, { color: "#e8c547", weight: 1.5, opacity: 0.8, dashArray: "2 4" }).bindTooltip("Transit gate").addTo(m);
       for (const a of z.anchorages) L.circle([a.lat, a.lon], { radius: a.km * 1000, color: "#5f7d99", weight: 1, opacity: 0.6, fillOpacity: 0.03, dashArray: "2 3" }).bindTooltip(a.name).addTo(m);
@@ -78,7 +82,10 @@
         `<span>${sw(`<path d="M0,-6 L4,5 L0,3 L-4,5 Z" fill="${COLORS.Tanker}" stroke="#0b0d10" stroke-width=".8"/>`)}Tanker</span>` +
         `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Cargo}" stroke="#0b0d10" stroke-width=".8"/>`)}Cargo</span>` +
         `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Passenger}" stroke="#0b0d10" stroke-width=".8"/>`)}Passenger</span>` +
-        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Unknown}" stroke="#0b0d10" stroke-width=".8"/>`)}Type unknown</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Fishing}" stroke="#0b0d10" stroke-width=".8"/>`)}Fishing</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Tug}" stroke="#0b0d10" stroke-width=".8"/>`)}Tug / service</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Other}" stroke="#0b0d10" stroke-width=".8"/>`)}Other type</span>` +
+        `<span>${sw(`<path d="M0,-5 L3.4,4.5 L0,2.6 L-3.4,4.5 Z" fill="${COLORS.Unknown}" stroke="#0b0d10" stroke-width=".8"/>`)}Type not yet received</span>` +
         `<span>${sw(`<rect x="-3" y="-3" width="6" height="6" transform="rotate(45)" fill="#c9d1d9" stroke="#0b0d10" stroke-width=".8"/>`)}Stationary</span>` +
         `<span>${sw(`<circle r="5.5" fill="none" stroke="${RING.sanctioned}" stroke-width="1.6"/>`)}Sanctioned</span>` +
         `<span>${sw(`<circle r="5.5" fill="none" stroke="${RING.sts}" stroke-width="1.6"/>`)}Ship-to-ship</span>` +
@@ -102,6 +109,7 @@
     panel.querySelectorAll(".zone-tabs button").forEach((x) => x.classList.toggle("on", x.dataset.z === z));
     panel.querySelectorAll(".maps .map").forEach((m) => (m.hidden = m.id !== `map-${z}`));
     maps[z]?.invalidateSize();
+    if (maps[z] && (!maps[z]._fitted || maps[z].getZoom() < 4)) maps[z]._fit?.();
     renderStats();
     panel.dispatchEvent(new CustomEvent("zonechange", { detail: z }));
   }
@@ -151,7 +159,12 @@
     const btn = panel.querySelector(".livemap-btn");
     btn.classList.toggle("on", on);
     btn.textContent = on ? "Own map" : "Live map";
-    if (!on) { box.querySelectorAll(".livemap, .livemap-note, .livemap-overlay, .livemap-label, .livemap-catch, .livemap-recenter").forEach((e) => e.remove()); return; }
+    if (!on) {
+      box.querySelectorAll(".livemap, .livemap-note, .livemap-overlay, .livemap-label, .livemap-catch, .livemap-recenter").forEach((e) => e.remove());
+      const m = maps[panelZone[panel.id]];
+      if (m) { m.invalidateSize(); if (!m._fitted || m.getZoom() < 4) m._fit?.(); }
+      return;
+    }
     if (!frame) {
       frame = Object.assign(document.createElement("iframe"), { className: "livemap", title: "VesselFinder live map" });
       frame.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
@@ -233,7 +246,8 @@
 
   function panelFor(zone) { return [...document.querySelectorAll(".map-panel")].find((p) => p.dataset.zones.split(",").includes(zone)); }
 
-  const COLORS = { Tanker: "#f29d38", Cargo: "#5aa9e6", Passenger: "#b48ef0", Military: "#ff5c5c", "Law enf.": "#ff5c5c", Unknown: "#9aa4ae" };
+  const COLORS = { Tanker: "#f29d38", Cargo: "#5aa9e6", Passenger: "#b48ef0", Military: "#ff5c5c", "Law enf.": "#ff5c5c",
+    Fishing: "#4fbf9f", Tug: "#c7a86b", SAR: "#ff8f5c", Other: "#7f8c99", Unknown: "#5d6873" };
   // Rings around the hull mark special status: magenta = OFAC-sanctioned, cyan = ship-to-ship transfer, yellow dashed = GPS jump
   const RING = { sanctioned: "#ff3df2", sts: "#2ee6e6", spoof: "#ffd400" };
   // Tankers: large bright arrow with a glow and white outline, drawn above everything else.
