@@ -12,60 +12,66 @@
 </head>
 <body>
   <header id="topbar">
-    <div class="brand"><span class="logo">◆</span> GOWER STREET TERMINAL <span class="sub">HORMUZ · BAB EL-MANDEB · ENERGY</span></div>
-    <div id="demo-banner" hidden>SIMULATED AIS — NOT REAL VESSELS</div>
-    <div id="feeds"></div>
+    <div class="brand"><span class="logo">◆</span> GOWER STREET TERMINAL</div>
+    <span id="demo-banner" hidden>SIMULATED SHIPS</span>
+    <nav id="tools" aria-label="Tools">
+      <button data-open="flows" title="Daily transits through each chokepoint (IMF PortWatch + this terminal's own counts)">⛴ Flows</button>
+      <button data-open="curve" title="Brent & WTI futures curves and spreads">〰 Curve</button>
+      <button data-open="scenario" title="What-if disruption calculator">⚠ Scenario</button>
+      <button data-open="settings" title="Phone alerts and data sources">⚙ Alerts</button>
+    </nav>
     <div class="right">
-      <label class="tog"><input type="checkbox" id="tankers-only" /> TANKERS ONLY</label>
-      <label class="tog"><input type="checkbox" id="sound" /> SOUND</label>
+      <div class="status-wrap">
+        <button id="status-btn" title="Status of every data source">● Data</button>
+        <div id="feeds" class="status-pop" hidden></div>
+      </div>
+      <label class="tog" title="Show only tankers on every map"><input type="checkbox" id="tankers-only" /> Tankers only</label>
+      <label class="tog" title="Beep on new alerts"><input type="checkbox" id="sound" /> Sound</label>
       <span id="clock">--:--:-- UTC</span>
     </div>
   </header>
 
-  <section id="clockbar">
-    <div id="clocks"></div>
-    <div id="tools">
-      <button data-open="flows" title="Daily transits through each chokepoint (IMF PortWatch + this terminal's own counts)">⛴ FLOWS</button>
-      <button data-open="curve" title="Brent & WTI futures curves and spreads">〰 CURVE</button>
-      <button data-open="scenario" title="What-if disruption calculator">⚠ SCENARIO</button>
-      <button data-open="settings" title="Phone alerts and data sources">⚙ ALERTS</button>
-    </div>
-  </section>
-
   <section id="ticker"></section>
-  <section id="spreads" title="Click for the full futures curve"></section>
+  <section id="infobar">
+    <div id="clocks"></div>
+    <div id="spreads" title="Futures spreads in $/bbl. A positive time spread (backwardation) means oil now costs more than later: a sign of supply stress. Click for the full curve."></div>
+  </section>
 
   <main id="grid">
     <section class="panel map-panel" id="p-hormuz" data-zones="HORMUZ,SUEZ">
       <div class="ph">
-        <span class="filters zone-tabs"><button data-z="HORMUZ" class="on">STRAIT OF HORMUZ</button><button data-z="SUEZ">SUEZ</button></span>
+        <span class="zone-tabs"><button data-z="HORMUZ" class="on">Strait of Hormuz</button><button data-z="SUEZ">Suez</button></span>
         <span class="stats"></span>
-        <button class="livemap-btn" title="Show VesselFinder's live map of this zone (wider coverage, their data)">🛰 LIVE MAP</button>
-        <button class="replay-btn" title="Play back the last 24 hours">⟲ REPLAY</button>
+        <span class="ph-actions">
+          <button class="livemap-btn" title="Switch between VesselFinder's live map (wider coverage, their data) and this terminal's own map">🛰 LIVE MAP</button>
+          <button class="replay-btn" title="Play back the last 24 hours on this terminal's map">⟲ REPLAY</button>
+        </span>
       </div>
       <div class="maps"><div class="map" id="map-HORMUZ"></div><div class="map" id="map-SUEZ" hidden></div></div>
       <div class="replay-bar" hidden></div>
     </section>
     <section class="panel map-panel" id="p-bab" data-zones="BAB,CAPE">
       <div class="ph">
-        <span class="filters zone-tabs"><button data-z="BAB" class="on">BAB EL-MANDEB</button><button data-z="CAPE">CAPE OF GOOD HOPE</button></span>
+        <span class="zone-tabs"><button data-z="BAB" class="on">Bab el-Mandeb</button><button data-z="CAPE">Cape of Good Hope</button></span>
         <span class="stats"></span>
-        <button class="livemap-btn" title="Show VesselFinder's live map of this zone (wider coverage, their data)">🛰 LIVE MAP</button>
-        <button class="replay-btn" title="Play back the last 24 hours">⟲ REPLAY</button>
+        <span class="ph-actions">
+          <button class="livemap-btn" title="Switch between VesselFinder's live map (wider coverage, their data) and this terminal's own map">🛰 LIVE MAP</button>
+          <button class="replay-btn" title="Play back the last 24 hours on this terminal's map">⟲ REPLAY</button>
+        </span>
       </div>
       <div class="maps"><div class="map" id="map-BAB"></div><div class="map" id="map-CAPE" hidden></div></div>
       <div class="replay-bar" hidden></div>
     </section>
 
     <section class="panel" id="p-alerts">
-      <div class="ph"><span class="t">INCIDENT ALERTS <span class="live">● LIVE</span></span><span class="cnt" id="alert-count"></span></div>
+      <div class="ph"><span class="t">Incident alerts <span class="live">● live</span></span><span class="cnt" id="alert-count"></span></div>
       <div class="list" id="alerts"></div>
     </section>
 
     <section class="panel" id="p-analyst">
-      <div class="ph"><span class="t">AI DESK ANALYST</span>
-        <span class="filters" id="an-tabs"><button data-t="brief" class="on">BRIEF</button><button data-t="ask">ASK</button></span>
-        <button id="run-analyst">RUN NOW</button>
+      <div class="ph"><span class="t">AI analyst</span>
+        <span class="seg" id="an-tabs"><button data-t="brief" class="on">Brief</button><button data-t="ask">Ask</button></span>
+        <button id="run-analyst" class="ghost">Run now</button>
       </div>
       <div class="body" id="analyst"></div>
       <div class="ask-pane" id="ask" hidden>
@@ -75,31 +81,34 @@
       </div>
     </section>
 
-    <section class="panel" id="p-news">
-      <div class="ph"><span class="t">NEWS WIRE</span>
+    <!-- One feed panel: news, official statements and social posts behind tabs -->
+    <section class="panel" id="p-feed">
+      <div class="ph feed-head">
+        <span class="feed-tabs">
+          <button data-feed="news" class="on">News <b class="n" id="n-news"></b></button>
+          <button data-feed="official">Official <b class="n" id="n-official"></b></button>
+          <button data-feed="social">Social <b class="n" id="n-social"></b></button>
+        </span>
+      </div>
+      <div class="feed-sub" data-for="news">
         <span class="filters" data-target="news">
-          <button data-f="ALL" class="on">ALL</button><button data-f="HORMUZ">HORMUZ</button><button data-f="BAB">RED SEA</button><button data-f="INCIDENT">INCIDENTS</button>
+          <button data-f="ALL" class="on">All</button><button data-f="HORMUZ">Hormuz</button><button data-f="BAB">Red Sea</button><button data-f="INCIDENT">Incidents</button>
         </span>
       </div>
-      <div class="list" id="news"></div>
-    </section>
-
-    <section class="panel" id="p-official">
-      <div class="ph"><span class="t">OFFICIAL STATEMENTS</span>
+      <div class="feed-sub" data-for="official" hidden>
         <span class="filters" data-target="official">
-          <button data-f="ALL" class="on">ALL</button><button data-f="US">US</button><button data-f="IRAN">IRAN</button><button data-f="HOUTHI">HOUTHI</button><button data-f="GULF">GULF</button><button data-f="UK">UK/UN</button>
+          <button data-f="ALL" class="on">All</button><button data-f="US">US</button><button data-f="IRAN">Iran</button><button data-f="HOUTHI">Houthi</button><button data-f="GULF">Gulf</button><button data-f="UK">UK/UN</button>
         </span>
       </div>
-      <div class="list" id="official"></div>
-    </section>
-
-    <section class="panel" id="p-social">
-      <div class="ph"><span class="t">SOCIAL CHATTER <span class="muted">unverified</span></span>
+      <div class="feed-sub" data-for="social" hidden>
         <span class="filters" data-target="social">
-          <button data-f="ALL" class="on">ALL</button><button data-f="X">X</button><button data-f="Bluesky">BSKY</button><button data-f="Reddit">REDDIT</button><button data-f="Telegram">TG</button>
+          <button data-f="ALL" class="on">All</button><button data-f="X">X</button><button data-f="Bluesky">Bluesky</button><button data-f="Reddit">Reddit</button><button data-f="Telegram">Telegram</button>
         </span>
+        <span class="muted unverified">unverified posts</span>
       </div>
-      <div class="list" id="social"></div>
+      <div class="list feed-list" id="news"></div>
+      <div class="list feed-list" id="official" hidden></div>
+      <div class="list feed-list" id="social" hidden></div>
     </section>
   </main>
 
@@ -110,7 +119,7 @@
 
   <footer id="footer">
     <span>© 2026 Mohammadamin Zare · University College London · All rights reserved</span>
-    <span class="muted">Delayed, unverified third-party data and AI analysis · not investment advice · third-party content © its respective owners</span>
+    <span class="muted">Delayed third-party data and AI analysis · not investment advice</span>
   </footer>
 
   <div id="flash"></div>

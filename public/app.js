@@ -34,7 +34,8 @@
     $("#clocks").innerHTML = CITIES.map(([c]) => {
       const f = fmt[c], t = f.time.format(now), h = +t.slice(0, 2);
       const off = (f.off.formatToParts(now).find((p) => p.type === "timeZoneName")?.value || "").replace("GMT", "UTC");
-      return `<div class="clk"><span class="city">${c}</span><span class="time">${t}</span><span class="${h >= 6 && h < 18 ? "day" : "night"}">${h >= 6 && h < 18 ? "☀" : "☾"}</span><span class="off">${f.day.format(now).toUpperCase()} ${off || "UTC"}</span></div>`;
+      const day = h >= 6 && h < 18;
+      return `<div class="clk" title="${c}: ${f.day.format(now)} ${t} (${off || "UTC"})"><span class="city">${c}</span><span class="time">${t.slice(0, 5)}</span><span class="${day ? "day" : "night"}">${day ? "☀" : "☾"}</span></div>`;
     }).join("");
   }
   tickClocks();
@@ -295,10 +296,16 @@
     const st = state.status.stats || {};
     for (const [pid, z] of Object.entries(panelZone)) {
       const s = st[z]; if (!s) continue;
-      const hot = (n, c) => `<b style="color:${n ? c : "inherit"}">${n}</b>`;
-      document.querySelector(`#${pid} .stats`).innerHTML =
-        `TANKERS <b>${s.tankers}</b> (moving <b>${s.tankersMoving}</b>, avg <b>${s.avgTankerSpeed ?? "–"}</b> kn) · ALL <b>${s.vessels}</b> · DARK ${hot(s.dark, "#ff4d4d")} · SANCTIONED ${hot(s.sanctioned, RING.sanctioned)} · STS ${hot(s.sts, RING.sts)} · GPS JUMPS ${hot(s.spoofed, RING.spoof)} · TRANSITS 24H <b>${s.transits24h}</b> (tankers <b>${s.tankerTransits24h}</b>)` +
-        (s.vessels === 0 && state.status.ais?.mode === "live" ? ` · <span class="warn">no ships reported here yet: free AIS has few receivers in this area</span>` : "");
+      // Short summary in the header; flags only appear when non-zero; full detail on hover
+      const el = document.querySelector(`#${pid} .stats`);
+      const flag = (n, label, c) => (n ? `<span class="flag" style="--c:${c}">${n} ${label}</span>` : "");
+      el.innerHTML = `<b>${s.tankers}</b> tankers · <b>${s.vessels}</b> ships` +
+        flag(s.dark, "dark", "#ff4d4d") + flag(s.sanctioned, "sanctioned", RING.sanctioned) + flag(s.sts, "STS", RING.sts) + flag(s.spoofed, "GPS jump", RING.spoof) +
+        (s.vessels === 0 && state.status.ais?.mode === "live" ? ` <span class="muted">· few free receivers here</span>` : "");
+      el.title = `This terminal's own AIS data for this zone:\n` +
+        `Tankers: ${s.tankers} (${s.tankersMoving} moving, avg ${s.avgTankerSpeed ?? "–"} kn)\nAll ships: ${s.vessels}\n` +
+        `AIS-dark: ${s.dark} · Sanctioned: ${s.sanctioned} · Ship-to-ship: ${s.sts} · GPS jumps: ${s.spoofed}\n` +
+        `Gate transits, last 24 h: ${s.transits24h} (tankers ${s.tankerTransits24h})`;
     }
     // Ship counts on every zone tab, so it's obvious where the ships are
     document.querySelectorAll(".zone-tabs button[data-z]").forEach((b) => {
@@ -322,9 +329,32 @@
     pills.push(`<span class="pill ${s.flows?.ok ? "ok" : "bad"}" title="${esc(s.flows?.error ? `IMF PortWatch: ${s.flows.error}. Retrying${s.flows.nextTry ? " at " + hhmm(s.flows.nextTry) : ""}.` : "IMF PortWatch transit data")}">IMF FLOWS</span>`);
     pills.push(`<span class="pill ${s.analyst?.enabled ? "ok" : "bad"}" title="${esc(s.analyst?.error || "")}">AI ANALYST</span>`);
     pills.push(`<span class="pill ${s.notify?.channels?.length ? (s.notify.lastError ? "bad" : "ok") : ""}" title="${esc(s.notify?.channels?.length ? `Phone alerts via ${s.notify.channels.join(" + ")} (${s.notify.minSeverity}+)${s.notify.lastError ? " · last error: " + s.notify.lastError : ""}` : "Phone alerts off (see ⚙ ALERTS)")}">PHONE</span>`);
-    $("#feeds").innerHTML = pills.join("");
+    // Full source list lives in a pop-up; the top bar shows one summary button
+    $("#feeds").innerHTML = `<div class="pop-title">Data sources</div><div class="pills">${pills.join("")}</div>` +
+      `<div class="pop-note">Green = working · red = unavailable or not configured. Hover a source for details.</div>`;
+    const bad = (pills.join("").match(/class="pill bad"/g) || []).length;
+    const btn = $("#status-btn");
+    btn.textContent = ais.mode === "demo" ? "● Demo data" : bad ? `● ${bad} source${bad > 1 ? "s" : ""} offline` : "● All data live";
+    btn.className = ais.mode === "demo" ? "warn" : bad > 3 ? "bad" : "ok";
     $("#demo-banner").hidden = ais.mode !== "demo";
   }
+  $("#status-btn").addEventListener("click", (e) => { e.stopPropagation(); $("#feeds").hidden = !$("#feeds").hidden; });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".status-wrap")) $("#feeds").hidden = true; });
+
+  // Feed panel: News / Official / Social tabs
+  document.querySelectorAll(".feed-tabs button").forEach((b) => b.addEventListener("click", () => {
+    const f = b.dataset.feed;
+    document.querySelectorAll(".feed-tabs button").forEach((x) => x.classList.toggle("on", x === b));
+    document.querySelectorAll(".feed-sub").forEach((x) => (x.hidden = x.dataset.for !== f));
+    document.querySelectorAll(".feed-list").forEach((x) => (x.hidden = x.id !== f));
+  }));
+  function feedCounts() {
+    const recent = (arr, k) => arr.filter((x) => Date.now() - Date.parse(x[k]) < 6 * 3600_000).length;
+    $("#n-news").textContent = recent(state.news, "published") || "";
+    $("#n-official").textContent = recent(state.official, "published") || "";
+    $("#n-social").textContent = recent(state.social, "time") || "";
+  }
+  setInterval(feedCounts, 30_000);
 
   // ---------------------------------------------------------------- prices
   const lastPx = {};
@@ -364,7 +394,7 @@
         (ch != null ? ` <span class="${ch >= 0 ? "up" : "down"}">${ch >= 0 ? "▲" : "▼"}${Math.abs(ch).toFixed(2)}</span>` : "") + `</span>`;
     });
     $("#spreads").innerHTML = items.length
-      ? `<span class="spr-h">CURVE ▸</span>${items.join("")}<span class="spr-note">$/bbl · positive time spread = backwardation · click for curve</span>`
+      ? `<span class="spr-h">Curve ▸</span>${items.join("")}`
       : `<span class="spr-h">CURVE ▸</span><span class="muted">${esc(state.curve?.error || "loading futures curve…")}</span>`;
   }
 
@@ -559,7 +589,7 @@
       state.official = s.official || []; renderOfficial();
       state.alerts = s.alerts; state.news = s.news; state.social = s.social; state.prices = s.prices;
       state.analyst = s.analyst; state.status = s.status; state.curve = s.curve;
-      renderAlerts(); renderNews(); renderSocial(); renderPrices(); renderAnalyst(); renderStats(); renderFeeds(); renderSpreads();
+      renderAlerts(); renderNews(); renderSocial(); renderPrices(); renderAnalyst(); renderStats(); renderFeeds(); renderSpreads(); feedCounts();
     });
     es.addEventListener("curve", (e) => { state.curve = JSON.parse(e.data); renderSpreads(); });
     es.addEventListener("vessels", (e) => JSON.parse(e.data).forEach(upsertVessel));
