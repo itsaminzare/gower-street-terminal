@@ -64,6 +64,27 @@ a:hover { text-decoration: underline; }
 @keyframes fu { from { background: #0f3a22; } to { background: transparent; } }
 @keyframes fd { from { background: #3a0f0f; } to { background: transparent; } }
 
+/* breaking-news crawl */
+#breaking { display: flex; flex-shrink: 0; height: 26px; background: #120303; border-top: 1px solid var(--crit); align-items: center; overflow: hidden; }
+.bk-label { flex-shrink: 0; height: 100%; display: flex; align-items: center; padding: 0 10px; background: var(--crit); color: #fff; font-weight: bold; letter-spacing: 1px; font-size: 12px; z-index: 1; }
+.bk-label::first-letter { animation: blink 1s infinite; }
+.bk-viewport { flex: 1; overflow: hidden; white-space: nowrap; height: 100%; display: flex; align-items: center; }
+.bk-track { display: inline-flex; align-items: center; will-change: transform; }
+.bk-track:hover { animation-play-state: paused !important; }
+@keyframes bk-crawl { from { transform: translateX(0); } to { transform: translateX(var(--bk-dist)); } }
+.bk-item { display: inline-flex; align-items: center; gap: 6px; padding: 0 4px; font-size: 13px; color: var(--text); cursor: pointer; white-space: nowrap; }
+.bk-item:hover { color: #fff; text-decoration: underline; }
+.bk-item.bk-new { animation: bk-flash 1.2s ease-in-out 3; }
+@keyframes bk-flash { 50% { background: #5a0000; } }
+.bk-sep { color: var(--amber-dim); padding: 0 14px; font-size: 10px; }
+.bk-tag { font-size: 10px; font-weight: bold; padding: 1px 5px; color: #000; }
+.bk-tag.critical { background: var(--crit); color: #fff; } .bk-tag.warning { background: var(--warn); }
+.bk-tag.official { background: #4fa3ff; } .bk-tag.news { background: var(--amber); }
+.bk-tag.social { background: #555; color: #ddd; border: 1px dashed #999; }
+.bk-tag.market, .bk-tag.up { background: var(--up); } .bk-tag.down { background: var(--down); color: #fff; }
+.bk-time { color: var(--muted); font-size: 11px; }
+.bk-src { color: var(--amber); font-weight: bold; }
+
 #footer { display: flex; justify-content: space-between; gap: 16px; height: 18px; padding: 0 10px; align-items: center;
   background: #111; border-top: 1px solid var(--amber-dim); color: var(--amber); font-size: 10px; white-space: nowrap; overflow: hidden; }
 body { display: flex; flex-direction: column; }

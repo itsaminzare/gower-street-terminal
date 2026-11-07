@@ -38,7 +38,9 @@ export const OFFICIAL_SOURCES = [
   // Iran
   { org: "IRNA (Iran state agency)", side: "IRAN", mode: "direct", url: "https://en.irna.ir/rss", topic: true },
   { org: "Mehr (semi-official)", side: "IRAN", mode: "direct", url: "https://en.mehrnews.com/rss", topic: true },
-  { org: "IRGC", side: "IRAN", mode: "relayed", url: gnews("(IRGC OR \"Revolutionary Guard\") (statement OR says OR warns OR navy) when:7d"), must: /irgc|revolutionary guard/i },
+  { org: "IRGC", side: "IRAN", mode: "relayed", url: gnews("(IRGC OR \"Revolutionary Guard\") (statement OR says OR warns OR navy) when:7d"),
+    // The IRGC must be the one speaking ("IRGC says…", "…: IRGC Navy"), not just mentioned in someone else's story
+    must: /(irgc|revolutionary guards?)( navy| commander| adviser| spokesman| chief)?\s*(says?|said|warns?|warned|claims?|claimed|announces?|announced|vows?|threatens?|denies|confirms?|statement|:)|:\s*(irgc|revolutionary guard)/i, mustTitle: true },
   { org: "Iran Foreign Ministry", side: "IRAN", mode: "relayed", url: gnews("Iran foreign ministry (spokesman OR Baghaei OR Araghchi) when:7d"), must: /foreign ministry|baghaei|araghchi|foreign minister/i },
   // Yemen / Houthis
   { org: "Houthi military (Saree)", side: "HOUTHI", mode: "relayed", url: gnews("(\"Yahya Saree\" OR \"Houthi military spokesman\") when:7d"),
