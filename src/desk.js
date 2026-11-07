@@ -30,9 +30,18 @@ const LIVE = {
 };
 const live = (k) => LIVE[k]?.();
 
-const stored = load(`desk2-${MODE}`, {});
+// Free hosting wipes data/ on every redeploy. Before a redeploy the live record is exported to
+// public-data/desk-snapshot.json (from /api/desk); a fresh server with no record of its own restores it, and says so in the log.
+let stored = load(`desk2-${MODE}`, null);
+let restoredFrom = null;
+if (!stored && !DEMO) {
+  const snap = readJSON("public-data/desk-snapshot.json");
+  if (snap?.ideas) { stored = { ideas: snap.ideas, runs: snap.lastRun ? [snap.lastRun] : [], log: snap.log || [], halted: !!snap.halted }; restoredFrom = snap.exportedAt; }
+}
+stored ||= {};
 export const desk = { ideas: stored.ideas || [], runs: stored.runs || [], log: stored.log || [], halted: !!stored.halted,
   running: false, error: null, enabled: false, limits: { ...DEFAULT_LIMITS } };
+if (restoredFrom) desk.log.unshift({ t: new Date().toISOString(), actor: "server", action: "record restored", detail: `desk record restored after a redeploy from the snapshot exported at ${restoredFrom}`, ideaId: null });
 const persist = () => save(`desk2-${MODE}`, { ideas: desk.ideas.slice(0, 300), runs: desk.runs.slice(0, 100), log: desk.log.slice(0, 1000), halted: desk.halted });
 
 /** Append to the audit log: every proposal, check, approval, rejection, close and halt. */
