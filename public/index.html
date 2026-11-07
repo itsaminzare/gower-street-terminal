@@ -8,11 +8,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Gower Street Terminal — Hormuz / Bab el-Mandeb</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&display=swap" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <header id="topbar">
-    <div class="brand">GOWER STREET TERMINAL</div>
+    <a class="brand" href="/" aria-label="Gower Street Terminal">
+      <span class="lg-box"><span class="lg-word">Gower Street</span></span>
+      <span class="lg-term">Terminal</span>
+    </a>
     <span id="demo-banner" hidden>SIMULATED SHIPS</span>
     <nav id="tools" aria-label="Tools">
       <button data-open="flows" title="Daily transits through each chokepoint (IMF PortWatch + this terminal's own counts)">Flows</button>
