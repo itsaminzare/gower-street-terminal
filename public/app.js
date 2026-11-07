@@ -358,11 +358,15 @@
       // Short summary in the header; flags only appear when non-zero; full detail on hover
       const el = document.querySelector(`#${pid} .stats`);
       const flag = (n, label, c) => (n ? `<span class="flag" style="--c:${c}">${n} ${label}</span>` : "");
-      el.innerHTML = `<b>${s.tankers}</b> tankers · <b>${s.vessels}</b> ships` +
+      // Honest counts: "tankers" are only ships confirmed as tankers by their own type broadcast; ships whose type
+      // hasn't arrived yet are counted separately rather than silently treated as non-tankers
+      el.innerHTML = `<b>${s.vessels}</b> ships · <b>${s.tankers}</b> confirmed tankers` +
+        (s.typePending ? ` · <span class="pending">${s.typePending} type pending</span>` : "") +
         flag(s.dark, "dark", "#ff4d4d") + flag(s.sanctioned, "sanctioned", RING.sanctioned) + flag(s.sts, "STS", RING.sts) + flag(s.spoofed, "GPS jump", RING.spoof) +
-        (s.vessels === 0 && state.status.ais?.mode === "live" ? ` <span class="muted">· few free receivers here</span>` : "");
-      el.title = `This terminal's own AIS data for this zone:\n` +
-        `Tankers: ${s.tankers} (${s.tankersMoving} moving, avg ${s.avgTankerSpeed ?? "–"} kn)\nAll ships: ${s.vessels}\n` +
+        (s.vessels <= 3 && state.status.ais?.mode === "live" ? ` <span class="muted">· free AIS has almost no receivers here (see Live map)</span>` : "");
+      el.title = `This terminal's own AIS data for this zone (free terrestrial receivers only):\n` +
+        `All ships: ${s.vessels}\nConfirmed tankers: ${s.tankers} (${s.tankersMoving} moving, avg ${s.avgTankerSpeed ?? "–"} kn)\n` +
+        `Type pending: ${s.typePending ?? 0} — ships send their type only every ~6 min and only if a receiver hears it, so some of these may be tankers\n` +
         `AIS-dark: ${s.dark} · Sanctioned: ${s.sanctioned} · Ship-to-ship: ${s.sts} · GPS jumps: ${s.spoofed}\n` +
         `Gate transits, last 24 h: ${s.transits24h} (tankers ${s.tankerTransits24h})`;
     }

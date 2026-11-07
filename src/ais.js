@@ -23,6 +23,13 @@ hist.frames = hist.frames.filter((f) => Date.now() - f.t < HISTORY_MS);
 persist(`history-${MODE}`, () => hist, 10 * 60_000);
 export function getHistory() { return hist; }
 
+// Ship identity cache (MMSI -> name, type, IMO...). Position reports arrive every few seconds but the ship's type only
+// every ~6 min, and only if a receiver hears it, so every restart used to forget what each ship is. Kept 30 days.
+const STATIC_TTL = 30 * 86400_000;
+const staticCache = Object.fromEntries(Object.entries(load(`static-${MODE}`, {})).filter(([, s]) => Date.now() - (s.t || 0) < STATIC_TTL));
+persist(`static-${MODE}`, () => staticCache, 5 * 60_000);
+export const staticCacheSize = () => Object.keys(staticCache).length;
+
 const dirty = new Set();
 const STALE_MS = 3 * 60 * 60 * 1000;
 const DARK_MS = 40 * 60 * 1000;
@@ -35,6 +42,12 @@ function getVessel(mmsi) {
     v = { mmsi, name: "", type: null, cls: "Unknown", dest: "", callsign: "", imo: null, flag: "",
           lat: null, lon: null, sog: null, cog: null, hdg: null, nav: 15, zone: null,
           lastSeen: 0, track: [], dark: false, incident: null, sanctioned: null, sts: null, spoof: null };
+    // Known ship? Restore its identity straight away instead of waiting for its next static broadcast
+    const c = staticCache[mmsi];
+    if (c) {
+      Object.assign(v, { name: c.name || "", imo: c.imo || null, callsign: c.callsign || "", length: c.length, draught: c.draught });
+      if (c.type != null) { v.type = c.type; v.cls = shipClass(c.type); }
+    }
     vessels.set(mmsi, v);
     checkSanctions(v);
   }
@@ -186,6 +199,7 @@ export function updateStatic(mmsi, s) {
   if (s.imo) { v.imo = s.imo; checkSanctions(v); }
   if (s.length) v.length = s.length;
   if (s.draught) v.draught = s.draught;
+  staticCache[mmsi] = { name: v.name, type: v.type, imo: v.imo, callsign: v.callsign, length: v.length, draught: v.draught, t: Date.now() };
   dirty.add(mmsi);
 }
 
@@ -275,6 +289,7 @@ export function zoneStats() {
     out[z] = {
       vessels: vs.length,
       tankers: tankers.length,
+      typePending: vs.filter((v) => v.cls === "Unknown").length,
       tankersMoving: tankers.filter((v) => v.sog > 3).length,
       avgTankerSpeed: tankers.length ? +(tankers.reduce((s, v) => s + (v.sog || 0), 0) / tankers.length).toFixed(1) : null,
       dark: vs.filter((v) => v.dark).length,
