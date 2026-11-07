@@ -59,7 +59,7 @@
       } else clearInterval(rp.timer);
     }
 
-    // Same markers as the live map (tankers large and glowing), rebuilt from the compact history flags
+    // Same markers as the live view, rebuilt from the compact history flags
     function icon(cls, flags, rot, sog) {
       return window.GST.vesselIcon({ cls, hdg: rot, sog, incident: flags & 1, dark: flags & 2, sanctioned: flags & 4, sts: flags & 8, spoof: flags & 16 });
     }

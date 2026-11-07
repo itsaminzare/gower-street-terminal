@@ -250,8 +250,7 @@
     Fishing: "#4fbf9f", Tug: "#c7a86b", SAR: "#ff8f5c", Other: "#7f8c99", Unknown: "#5d6873" };
   // Rings around the hull mark special status: magenta = OFAC-sanctioned, cyan = ship-to-ship transfer, yellow dashed = GPS jump
   const RING = { sanctioned: "#ff3df2", sts: "#2ee6e6", spoof: "#ffd400" };
-  // Tankers: large bright arrow with a glow and white outline, drawn above everything else.
-  // Other ships: small muted markers. Unidentified ships (type not received yet): faint grey outlines.
+  // Marker style by ship class; tankers are drawn larger and above other ships.
   function vesselIcon(v) {
     const tanker = v.cls === "Tanker";
     const color = v.incident ? "#ff4d4d" : COLORS[v.cls] || COLORS.Unknown;
@@ -296,10 +295,8 @@
       <a target="_blank" rel="noopener" href="https://www.vesselfinder.com/vessels/details/${v.mmsi}">VesselFinder ↗</a></div>`;
   }
 
-  // Ship type arrives in separate static messages (~every 6 min), so untyped vessels are hidden in tankers-only mode until classified
-  // Ships whose type hasn't arrived yet ("Unknown") stay visible as faint grey markers: many ships send their type rarely,
-  // and hiding them left the chokepoint maps looking empty.
-  // TANKERS ONLY means exactly that: every non-tanker (including ships whose type isn't known yet) is hidden
+  // Ship type arrives in separate static messages (~every 6 min). In tankers-only mode every ship not confirmed as a
+  // tanker is hidden, including ships whose type has not been received yet.
   function visible(v) { return !state.tankersOnly || v.cls === "Tanker"; }
 
   function upsertVessel(v) {
@@ -318,7 +315,7 @@
     } else {
       mk.m.setLatLng([v.lat, v.lon]);
       mk.trail.setLatLngs(v.track || []);
-      // Rebuilding a marker's element every 2 s made ships blink, especially while panning; only rebuild when its look changes
+      // Rebuild the marker element only when its appearance changes (avoids flicker on frequent position updates)
       if (mk.key !== key) {
         mk.key = key;
         mk.m.setIcon(vesselIcon(v)); mk.m.setZIndexOffset(v.cls === "Tanker" ? 1000 : 0);

@@ -24,7 +24,7 @@ persist(`history-${MODE}`, () => hist, 10 * 60_000);
 export function getHistory() { return hist; }
 
 // Ship identity cache (MMSI -> name, type, IMO...). Position reports arrive every few seconds but the ship's type only
-// every ~6 min, and only if a receiver hears it, so every restart used to forget what each ship is. Kept 30 days.
+// every ~6 min, and only if a receiver hears it, so identities are cached by MMSI across restarts. Kept 30 days.
 const STATIC_TTL = 30 * 86400_000;
 const staticCache = Object.fromEntries(Object.entries(load(`static-${MODE}`, {})).filter(([, s]) => Date.now() - (s.t || 0) < STATIC_TTL));
 persist(`static-${MODE}`, () => staticCache, 5 * 60_000);
