@@ -7,6 +7,11 @@
 - GitHub: https://github.com/itsaminzare/gower-street-terminal (README, logo, evidence)
 - Deck: `deck/Gower-Street-Terminal-pitch.pptx` (11 slides)
 
+## Plan for the next session (in this order)
+1. **Demo video, made automatically:** script a ~90-second 1080p tour of the live site with Playwright and ffmpeg (install both with approval), using `video/1-opening-card.png`, `video/2-closing-card.png` and the captions in `video/SHOT-LIST.md`. Output: `video/gower-street-demo.mp4`.
+2. **Finish the Gemini move:** add Gemini support to `scripts/agent-backtest.mjs` and re-run it; update the README, Research window and deck with the Gemini numbers; change the README and deck wording from Claude to Gemini (Claude as alternative); add `AI_PROVIDER=gemini` to `render.yaml`.
+3. **Gemini as a GitHub contributor:** you install the Gemini Code Assist app or the Gemini CLI Action; then a pull request with a fix from `docs/gemini-review.md`, made by Gemini's bot and merged into main.
+
 ## Still to do before the deadline
 1. **Submit** the repo link, live link and deck to the hackathon.
 2. **Optional: re-run the AI backtest on Gemini** so the deck and README numbers match the model now in use (ask Claude: "re-run the agent backtest with Gemini and update README and deck"). Until then, those numbers say they came from Claude Haiku.
