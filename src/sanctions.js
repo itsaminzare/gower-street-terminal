@@ -27,9 +27,24 @@ function index(list) {
   sanctionsStatus.vessels = list.length;
 }
 
+// Two official addresses for the same SDN file; some hosting networks reach one but not the other
+const SOURCES = [
+  "https://sanctionslistservice.ofac.treas.gov/api/PublicationPreview/exports/SDN.CSV",
+  "https://www.treasury.gov/ofac/downloads/sdn.csv",
+];
+async function download() {
+  let lastErr;
+  for (const url of SOURCES) {
+    try { return await fetchText(url, { timeout: 90000 }); }
+    catch (e) { lastErr = new Error(`${new URL(url).host}: ${e.cause?.code || e.message}`); }
+  }
+  throw lastErr;
+}
+
+let retryTimer = null;
 async function refresh() {
   try {
-    const csv = await fetchText("https://www.treasury.gov/ofac/downloads/sdn.csv", { timeout: 60000 });
+    const csv = await download();
     const list = [];
     for (const line of csv.split(/\r?\n/)) {
       if (!/,"vessel",/i.test(line)) continue;
@@ -46,8 +61,10 @@ async function refresh() {
     save("ofac-vessels", { updated: sanctionsStatus.updated, list });
     log("sanctions", `OFAC list loaded: ${list.length} vessels`);
   } catch (e) {
-    sanctionsStatus.error = e.message;
+    sanctionsStatus.error = `${e.message} (retrying in 30 min)`;
     log("sanctions", "refresh failed:", e.message);
+    // Without a list nothing can be flagged, so retry soon rather than waiting a day
+    if (!retryTimer && !sanctionsStatus.ok) retryTimer = setTimeout(() => { retryTimer = null; refresh(); }, 30 * 60_000);
   }
 }
 
