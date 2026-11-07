@@ -123,11 +123,17 @@ body { display: flex; flex-direction: column; }
 .livemap-btn.on { background: #2c5d8a; color: #fff; border-color: #2c5d8a; }
 /* Above all Leaflet layers and controls (which go up to z-index 1000) */
 iframe.livemap { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; z-index: 1100; background: #b5d0e8; }
-.livemap-overlay { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1102; pointer-events: none; }
-.livemap-overlay .lm-label { fill: #000; font: bold 11px var(--font); paint-order: stroke; stroke: #ffd400; stroke-width: 3px; letter-spacing: .5px; }
+.livemap-overlay { position: absolute; left: 0; top: 20px; width: 100%; height: calc(100% - 20px); z-index: 1102; pointer-events: none; overflow: hidden; }
 .livemap-catch { position: absolute; inset: 20px 0 0 0; z-index: 1103; cursor: grab; }
+.livemap-label { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); z-index: 1104; pointer-events: none;
+  white-space: nowrap; max-width: calc(100% - 140px); overflow: hidden; text-overflow: ellipsis;
+  font: 600 10px var(--font); letter-spacing: .4px; color: #fff; background: rgba(10, 14, 20, .82); border: 1px solid rgba(255, 212, 0, .6);
+  border-radius: 4px; padding: 2px 8px; }
+.livemap-label:empty { display: none; }
+.livemap-label .sw { display: inline-block; width: 12px; height: 8px; border: 2px solid #ffd400; background: rgba(255, 212, 0, .15); vertical-align: -1px; margin-right: 5px; }
+.livemap-label .sw.dash { border: 2px dashed #c98a2a; background: none; margin-left: 8px; }
 .livemap-recenter { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); z-index: 1104; background: #ffd400; color: #000; font-weight: bold; border-color: #000; }
-.livemap-note { position: absolute; left: 6px; bottom: 6px; z-index: 1101; font-size: 10px; background: rgba(0,0,0,.75); padding: 2px 6px; color: var(--muted); }
+.livemap-note { position: absolute; left: 6px; bottom: 6px; z-index: 1105; font-size: 10px; background: rgba(0,0,0,.75); padding: 2px 6px; color: var(--muted); }
 .livemap-note a { color: var(--amber); }
 .replay-btn { flex-shrink: 0; font-size: 10.5px; padding: 0 6px; }
 .replay-btn.on { background: var(--crit); color: #fff; border-color: var(--crit); }

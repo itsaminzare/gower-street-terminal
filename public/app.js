@@ -92,10 +92,24 @@
   // LIVE MAP: VesselFinder's public embed of the active zone. Their receiver + satellite network covers
   // Hormuz and the Red Sea far better than the free feed; our alerts/flags don't apply to their map.
   const VF_ZOOM = { HORMUZ: 8, BAB: 8, SUEZ: 8, CAPE: 7 };
-  function vesselFinderUrl(z, h) {
+  // Zoom out (from the preferred zoom) until the waterway outline fits inside the visible map,
+  // clear of VesselFinder's header bar, scale bar and our credit line.
+  function liveZoom(z, W, H) {
+    const zone = state.zones[z]; let zoom = VF_ZOOM[z] || 8;
+    if (!zone || !zone.focus || !W || !H) return zoom;
+    for (; zoom > 4; zoom--) {
+      const px = zone.focus.poly.map(([la, lo]) => mercPx(la, lo, zoom));
+      const [cx, cy] = mercPx(zone.center[0], zone.center[1], zoom);
+      const xs = px.map((p) => p[0] - cx), ys = px.map((p) => p[1] - cy);
+      const halfW = W / 2 - 24, halfH = (H - VF_HEADER) / 2 - 34;
+      if (Math.max(...xs.map(Math.abs)) <= halfW && Math.max(...ys.map(Math.abs)) <= halfH) break;
+    }
+    return zoom;
+  }
+  function vesselFinderUrl(z, h, zoom) {
     const zone = state.zones[z]; if (!zone) return "about:blank";
     const [lat, lon] = zone.center;
-    const qs = `zoom=${VF_ZOOM[z] || 8}&lat=${lat}&lon=${lon}&width=100%25&height=${Math.max(400, Math.round(h))}` +
+    const qs = `zoom=${zoom || VF_ZOOM[z] || 8}&lat=${lat}&lon=${lon}&width=100%25&height=${Math.max(400, Math.round(h))}` +
       "&names=false&track=false&fleet=false&fleet_name=false&fleet_hide_old_positions=false&clicktoact=false&store_pos=false" +
       // VesselFinder's ship-group bitmask (511 = all). Worked out by testing each bit with names shown at Fujairah:
       // 1 = cargo, 2 = tankers, 4 = tugs/special craft, 128 = other/offshore, 256 = pleasure craft. So 2 = tankers only.
@@ -121,7 +135,7 @@
     const btn = panel.querySelector(".livemap-btn");
     btn.classList.toggle("on", on);
     btn.textContent = on ? "◧ OUR MAP" : "🛰 LIVE MAP";
-    if (!on) { box.querySelectorAll(".livemap, .livemap-note, .livemap-overlay, .livemap-catch, .livemap-recenter").forEach((e) => e.remove()); return; }
+    if (!on) { box.querySelectorAll(".livemap, .livemap-note, .livemap-overlay, .livemap-label, .livemap-catch, .livemap-recenter").forEach((e) => e.remove()); return; }
     if (!frame) {
       frame = Object.assign(document.createElement("iframe"), { className: "livemap", title: "VesselFinder live map" });
       frame.setAttribute("referrerpolicy", "no-referrer-when-downgrade");
@@ -129,16 +143,23 @@
       box.insertAdjacentHTML("beforeend",
         `<div class="livemap-note">Live map © <a href="https://www.vesselfinder.com" target="_blank" rel="noopener">VesselFinder</a> · their data, not covered by this terminal's alerts or flags</div>` +
         `<svg class="livemap-overlay"></svg><div class="livemap-catch" title="Click or scroll to explore the live map"></div>` +
+        `<div class="livemap-label"></div>` +
         `<button class="livemap-recenter" hidden title="Return to the chokepoint view and show its outline">⌖ RE-CENTER</button>`);
       // Their map can't tell us when it's panned, so the outline hides on the first click/scroll and RE-CENTER restores both
       const catcher = box.querySelector(".livemap-catch");
-      const release = () => { box.querySelector(".livemap-overlay").style.display = "none"; catcher.style.display = "none"; box.querySelector(".livemap-recenter").hidden = false; };
+      const release = () => {
+        box.querySelector(".livemap-overlay").style.display = "none"; box.querySelector(".livemap-label").style.display = "none";
+        catcher.style.display = "none"; box.querySelector(".livemap-recenter").hidden = false;
+      };
       catcher.addEventListener("pointerdown", release);
       catcher.addEventListener("wheel", release, { passive: true });
       box.querySelector(".livemap-recenter").addEventListener("click", () => setLiveMap(panel, true));
     }
-    frame.src = vesselFinderUrl(panelZone[panel.id], box.clientHeight);
+    const z = panelZone[panel.id];
+    box.dataset.vfZoom = liveZoom(z, box.clientWidth, box.clientHeight);
+    frame.src = vesselFinderUrl(z, box.clientHeight, +box.dataset.vfZoom);
     box.querySelector(".livemap-overlay").style.display = "";
+    box.querySelector(".livemap-label").style.display = "";
     box.querySelector(".livemap-catch").style.display = "";
     box.querySelector(".livemap-recenter").hidden = true;
     drawLiveOverlay(panel);
@@ -155,20 +176,20 @@
     const box = panel.querySelector(".maps"), svg = box.querySelector(".livemap-overlay");
     const z = panelZone[panel.id], zone = state.zones[z];
     if (!svg || !zone) return;
-    const W = box.clientWidth, H = box.clientHeight, zoom = VF_ZOOM[z] || 8;
+    // The SVG starts below VesselFinder's header bar (see CSS), so nothing can be drawn over it
+    const W = box.clientWidth, H = box.clientHeight - VF_HEADER, zoom = +box.dataset.vfZoom || VF_ZOOM[z] || 8;
     const [cx, cy] = mercPx(zone.center[0], zone.center[1], zoom);
-    const toPx = ([lat, lon]) => { const [x, y] = mercPx(lat, lon, zoom); return [W / 2 + (x - cx), VF_HEADER + (H - VF_HEADER) / 2 + (y - cy)]; };
+    const toPx = ([lat, lon]) => { const [x, y] = mercPx(lat, lon, zoom); return [W / 2 + (x - cx), H / 2 + (y - cy)]; };
     const pts = (arr) => arr.map((p) => toPx(p).map((n) => n.toFixed(1)).join(",")).join(" ");
     const [[a, b], [c, d]] = zone.box;
     let html = `<polygon points="${pts([[a, b], [a, d], [c, d], [c, b]])}" fill="none" stroke="#c98a2a" stroke-width="2" stroke-dasharray="7 5"/>`;
-    if (zone.focus) {
-      const poly = zone.focus.poly.map(toPx);
-      const lx = poly.reduce((s, p) => s + p[0], 0) / poly.length, ly = poly.reduce((s, p) => s + p[1], 0) / poly.length;
-      html += `<polygon points="${pts(zone.focus.poly)}" fill="#ffd400" fill-opacity=".08" stroke="#ffd400" stroke-width="3"/>` +
-        `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" class="lm-label">${esc(zone.focus.label)}</text>`;
-    }
+    if (zone.focus) html += `<polygon points="${pts(zone.focus.poly)}" fill="#ffd400" fill-opacity=".08" stroke="#ffd400" stroke-width="3"/>`;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.innerHTML = html;
+    // The name sits in a chip at the top of the map instead of on the water, where it could hit map text
+    const label = box.querySelector(".livemap-label");
+    if (label) label.innerHTML = zone.focus
+      ? `<i class="sw"></i>${esc(zone.focus.label)} <i class="sw dash"></i>watched area` : "";
   }
   // VesselFinder keeps its map's left edge (not its centre) when the frame is resized, so after a real size
   // change the live map is reloaded (debounced) to stay centred under the outline.
