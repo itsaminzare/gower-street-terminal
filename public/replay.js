@@ -13,6 +13,8 @@
     panel.addEventListener("zonechange", () => { if (rp) { stop(); start(); } });
 
     async function start() {
+      // Replay draws on our own map, so leave the live map while it runs (without changing the saved preference)
+      if (panel.querySelector(".maps iframe.livemap")) window.GST.setLiveMap(panel, false);
       const zone = panelZone[panel.id];
       const box = state.zones[zone]?.box;
       btn.classList.add("on"); btn.textContent = "■ EXIT REPLAY";

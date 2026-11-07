@@ -84,6 +84,16 @@
       `&ra=${encodeURIComponent(location.href)}`;
     return `https://www.vesselfinder.com/aismap?${qs}`;
   }
+  // Default view per zone: the free AIS feed has no receivers in the Hormuz narrows, Bab el-Mandeb or Suez,
+  // so those open on the live map; the Cape is well covered and opens on our own map. Choices are remembered.
+  const DEFAULT_VIEW = { HORMUZ: "live", BAB: "live", SUEZ: "live", CAPE: "ours" };
+  function viewPref(z) { try { return localStorage.getItem(`gst-view-${z}`) || DEFAULT_VIEW[z] || "ours"; } catch { return DEFAULT_VIEW[z] || "ours"; } }
+  function setViewPref(z, v) { try { localStorage.setItem(`gst-view-${z}`, v); } catch { /* private mode */ } }
+  let viewsApplied = false;
+  function applyViewPrefs() {
+    if (viewsApplied) return; viewsApplied = true;
+    document.querySelectorAll(".map-panel").forEach((p) => { if (viewPref(panelZone[p.id]) === "live") setLiveMap(p, true); });
+  }
   function setLiveMap(panel, on) {
     const box = panel.querySelector(".maps");
     let frame = box.querySelector("iframe.livemap");
@@ -100,9 +110,13 @@
     frame.src = vesselFinderUrl(panelZone[panel.id], box.clientHeight);
   }
   document.querySelectorAll(".map-panel").forEach((panel) => {
-    panel.querySelector(".livemap-btn").addEventListener("click", () => setLiveMap(panel, !panel.querySelector(".maps iframe.livemap")));
-    // Follow zone tab changes while the live map is showing
-    panel.addEventListener("zonechange", () => { if (panel.querySelector(".maps iframe.livemap")) setLiveMap(panel, true); });
+    panel.querySelector(".livemap-btn").addEventListener("click", () => {
+      const on = !panel.querySelector(".maps iframe.livemap");
+      setViewPref(panelZone[panel.id], on ? "live" : "ours");
+      setLiveMap(panel, on);
+    });
+    // Each zone opens in its own preferred view
+    panel.addEventListener("zonechange", () => setLiveMap(panel, viewPref(panelZone[panel.id]) === "live"));
   });
 
   function panelFor(zone) { return [...document.querySelectorAll(".map-panel")].find((p) => p.dataset.zones.split(",").includes(zone)); }
@@ -435,7 +449,7 @@
     const es = new EventSource("/api/stream");
     es.addEventListener("snapshot", (e) => {
       const s = JSON.parse(e.data);
-      state.zones = s.zones; initMaps(s.zones);
+      state.zones = s.zones; initMaps(s.zones); applyViewPrefs();
       state.vessels.clear(); for (const [m, mk] of markers) { mk.m.remove(); mk.trail.remove(); } markers.clear();
       s.vessels.forEach(upsertVessel);
       state.official = s.official || []; renderOfficial();
@@ -468,7 +482,7 @@
     es.onerror = () => { $("#feeds").innerHTML = `<span class="pill bad">SERVER DISCONNECTED — reconnecting…</span>`; };
   }
   // Shared with tools.js / replay.js
-  Object.assign(window.GST, { maps, layers, markers, showZone, panelFor, panelZone, COLORS, RING, ZN, renderStats });
+  Object.assign(window.GST, { maps, layers, markers, showZone, panelFor, panelZone, COLORS, RING, ZN, renderStats, setLiveMap });
   connect();
   setInterval(() => { renderStats(); }, 15000);
 })();
