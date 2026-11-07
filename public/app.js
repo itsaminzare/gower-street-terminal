@@ -96,14 +96,19 @@
     const [lat, lon] = zone.center;
     const qs = `zoom=${VF_ZOOM[z] || 8}&lat=${lat}&lon=${lon}&width=100%25&height=${Math.max(400, Math.round(h))}` +
       "&names=false&track=false&fleet=false&fleet_name=false&fleet_hide_old_positions=false&clicktoact=false&store_pos=false" +
+      // VesselFinder's ship-group bitmask (511 = all). Worked out by testing each bit with names shown at Fujairah:
+      // 1 = cargo, 2 = tankers, 4 = tugs/special craft, 128 = other/offshore, 256 = pleasure craft. So 2 = tankers only.
+      (state.tankersOnly ? "&fil=2" : "") +
       `&ra=${encodeURIComponent(location.href)}`;
     return `https://www.vesselfinder.com/aismap?${qs}`;
   }
-  // Default view per zone: the free AIS feed has no receivers in the Hormuz narrows, Bab el-Mandeb or Suez,
-  // so those open on the live map; the Cape is well covered and opens on our own map. Choices are remembered.
-  const DEFAULT_VIEW = { HORMUZ: "live", BAB: "live", SUEZ: "live", CAPE: "ours" };
-  function viewPref(z) { try { return localStorage.getItem(`gst-view-${z}`) || DEFAULT_VIEW[z] || "ours"; } catch { return DEFAULT_VIEW[z] || "ours"; } }
-  function setViewPref(z, v) { try { localStorage.setItem(`gst-view-${z}`, v); } catch { /* private mode */ } }
+  // Default view per zone (the free AIS feed has no receivers in the Hormuz narrows, Bab el-Mandeb or Suez).
+  // Choices are remembered per zone; the version suffix resets saved choices when the defaults change.
+  const VIEW_KEY = (z) => `gst-view2-${z}`;
+  // All four zones open in the same style (the live map); our own map is one click away on each
+  const DEFAULT_VIEW = { HORMUZ: "live", BAB: "live", SUEZ: "live", CAPE: "live" };
+  function viewPref(z) { try { return localStorage.getItem(VIEW_KEY(z)) || DEFAULT_VIEW[z] || "ours"; } catch { return DEFAULT_VIEW[z] || "ours"; } }
+  function setViewPref(z, v) { try { localStorage.setItem(VIEW_KEY(z), v); } catch { /* private mode */ } }
   let viewsApplied = false;
   function applyViewPrefs() {
     if (viewsApplied) return; viewsApplied = true;
@@ -198,7 +203,7 @@
   function vesselIcon(v) {
     const tanker = v.cls === "Tanker", unknown = v.cls === "Unknown";
     const color = v.incident ? "#ff3b3b" : tanker ? "#ffb000" : COLORS[v.cls] || "#8a8a8a";
-    const rot = v.hdg ?? v.cog ?? 0;
+    const rot = Math.round((v.hdg ?? v.cog ?? 0) / 5) * 5; // matches iconKey, so redraws only happen on visible changes
     const moving = (v.sog ?? 0) > 0.8;
     let shape, style;
     if (tanker) {
@@ -242,25 +247,38 @@
   // Ship type arrives in separate static messages (~every 6 min), so untyped vessels are hidden in tankers-only mode until classified
   // Ships whose type hasn't arrived yet ("Unknown") stay visible as faint grey markers: many ships send their type rarely,
   // and hiding them left the chokepoint maps looking empty.
-  function visible(v) { return !state.tankersOnly || v.cls === "Tanker" || v.cls === "Unknown" || !!v.incident || !!v.sanctioned || !!v.sts; }
+  // TANKERS ONLY means exactly that: every non-tanker (including ships whose type isn't known yet) is hidden
+  function visible(v) { return !state.tankersOnly || v.cls === "Tanker"; }
 
   function upsertVessel(v) {
     state.vessels.set(v.mmsi, v);
     const z = v.zone;
     let mk = markers.get(v.mmsi);
     if (!z || !layers[z] || !visible(v)) { if (mk) { mk.m.remove(); mk.trail.remove(); markers.delete(v.mmsi); } return; }
+    const key = iconKey(v);
+    const trailStyle = v.cls === "Tanker" ? { color: "#ffb000", weight: 2, opacity: 0.6 } : { color: COLORS[v.cls] || "#888", weight: 1, opacity: 0.25 };
     if (!mk) {
-      mk = { m: L.marker([v.lat, v.lon], { icon: vesselIcon(v), zIndexOffset: v.cls === "Tanker" ? 1000 : 0 }).bindPopup(() => popup(state.vessels.get(v.mmsi))),
-             trail: L.polyline(v.track || [], { color: COLORS[v.cls] || "#888", weight: 1, opacity: 0.35 }) };
+      mk = { key, m: L.marker([v.lat, v.lon], { icon: vesselIcon(v), zIndexOffset: v.cls === "Tanker" ? 1000 : 0 }).bindPopup(() => popup(state.vessels.get(v.mmsi))),
+             trail: L.polyline(v.track || [], trailStyle) };
       mk.m.addTo(layers[z]); mk.trail.addTo(layers[z]);
-      mk.m.bindTooltip(() => `${esc(v.name || v.mmsi)} · ${v.sog?.toFixed(1) ?? "?"} kn`, { direction: "top", offset: [0, -6] });
+      mk.m.bindTooltip(() => { const s = state.vessels.get(v.mmsi) || v; return `${esc(s.name || s.mmsi)} · ${s.sog?.toFixed(1) ?? "?"} kn`; }, { direction: "top", offset: [0, -6] });
       markers.set(v.mmsi, mk);
     } else {
-      mk.m.setLatLng([v.lat, v.lon]); mk.m.setIcon(vesselIcon(v)); mk.m.setZIndexOffset(v.cls === "Tanker" ? 1000 : 0);
+      mk.m.setLatLng([v.lat, v.lon]);
       mk.trail.setLatLngs(v.track || []);
-      mk.trail.setStyle(v.cls === "Tanker" ? { color: "#ffb000", weight: 2, opacity: 0.6 } : { color: COLORS[v.cls] || "#888", weight: 1, opacity: 0.25 });
+      // Rebuilding a marker's element every 2 s made ships blink, especially while panning; only rebuild when its look changes
+      if (mk.key !== key) {
+        mk.key = key;
+        mk.m.setIcon(vesselIcon(v)); mk.m.setZIndexOffset(v.cls === "Tanker" ? 1000 : 0);
+        mk.trail.setStyle(trailStyle);
+      }
       if (mk.m.isPopupOpen()) mk.m.setPopupContent(popup(v));
     }
+  }
+  // Everything that changes a marker's appearance (heading rounded to 5°)
+  function iconKey(v) {
+    const rot = Math.round((v.hdg ?? v.cog ?? 0) / 5) * 5;
+    return [v.cls, rot, (v.sog ?? 0) > 0.8, !!v.incident, !!v.dark, !!v.sanctioned, !!v.sts, !!v.spoof].join("|");
   }
   function removeVessel(mmsi) { const mk = markers.get(mmsi); if (mk) { mk.m.remove(); mk.trail.remove(); markers.delete(mmsi); } state.vessels.delete(mmsi); }
   function redrawAllVessels() { for (const [m, mk] of markers) { mk.m.remove(); mk.trail.remove(); } markers.clear(); for (const v of state.vessels.values()) upsertVessel(v); }
@@ -519,7 +537,12 @@
   });
 
   // ---------------------------------------------------------------- toggles
-  $("#tankers-only").addEventListener("change", (e) => { state.tankersOnly = e.target.checked; redrawAllVessels(); });
+  $("#tankers-only").addEventListener("change", (e) => {
+    state.tankersOnly = e.target.checked;
+    redrawAllVessels();
+    // Reload any live maps with (or without) VesselFinder's tanker filter
+    document.querySelectorAll(".map-panel").forEach((p) => { if (p.querySelector(".maps iframe.livemap")) setLiveMap(p, true); });
+  });
   $("#sound").addEventListener("change", (e) => {
     state.sound = e.target.checked;
     if (state.sound) { beep(700); if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); }

@@ -26,7 +26,10 @@
     autoSize: true,
     layout: { background: { type: "solid", color: "#0a0a0a" }, textColor: "#9a9a9a", fontFamily: "Consolas, Menlo, monospace", fontSize: 10 },
     grid: { vertLines: { color: "#151515" }, horzLines: { color: "#151515" } },
-    rightPriceScale: { borderColor: "#262626" }, timeScale: { borderColor: "#262626" },
+    rightPriceScale: { borderColor: "#262626" },
+    timeScale: { borderColor: "#262626", rightOffset: 0, fixLeftEdge: true, fixRightEdge: true, lockVisibleTimeRangeOnResize: true },
+    handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+    handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: { time: true, price: false }, axisDoubleClickReset: true },
     crosshair: { mode: LWC.CrosshairMode.Magnet },
   });
 

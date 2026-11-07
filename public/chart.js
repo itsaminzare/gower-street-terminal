@@ -22,7 +22,12 @@
       layout: { background: { type: "solid", color: "#0a0a0a" }, textColor: "#9a9a9a", fontFamily: "Consolas, Menlo, monospace", fontSize: 11 },
       grid: { vertLines: { color: "#161616" }, horzLines: { color: "#161616" } },
       rightPriceScale: { borderColor: "#262626", scaleMargins: { top: 0.08, bottom: 0.26 } },
-      timeScale: { borderColor: "#262626", timeVisible: true, secondsVisible: false, rightOffset: 4 },
+      // Never scroll past the first/last candle (that showed an empty black area), keep the view when resizing,
+      // and let the mouse wheel scroll sideways instead of rescaling the candles. Zoom: drag the time axis or pinch.
+      timeScale: { borderColor: "#262626", timeVisible: true, secondsVisible: false, rightOffset: 0,
+        fixLeftEdge: true, fixRightEdge: true, lockVisibleTimeRangeOnResize: true },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: { time: true, price: false }, axisDoubleClickReset: true },
       crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { color: "#555", labelBackgroundColor: "#333" }, horzLine: { color: "#555", labelBackgroundColor: "#333" } },
       localization: { timeFormatter: (t) => utc(t) },
     });
