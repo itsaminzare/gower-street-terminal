@@ -106,6 +106,11 @@ Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real
 - The historical samples are small, and the model may know how past events ended, so the live paper record is the only fully unseen test.
 - Nothing here is investment advice.
 
+## Credits
+
+- **Google Gemini** (`gemini-3.8-flash`, via the Gemini API) powers the live AI analyst, chat and trade-desk proposals on the public site.
+- **Anthropic Claude** is supported as a switchable alternative (`AI_PROVIDER=claude`) and was used for the historical agent backtest.
+
 ## Licence
 
 © 2026 Mohammadamin Zare, University College London. All rights reserved. See [LICENSE](LICENSE).
