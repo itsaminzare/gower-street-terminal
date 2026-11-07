@@ -23,6 +23,7 @@ Apache 2.0 notice for Lightweight Charts: Copyright (c) TradingView, Inc. Licens
 | Map data | © OpenStreetMap contributors | Open Database License (ODbL) |
 | AIS vessel positions | aisstream.io | aisstream.io terms of service |
 | Market prices and futures curves (delayed) | Yahoo Finance and the underlying exchanges | Yahoo terms of service; personal, non-commercial use |
+| Backup market prices, curves and charts (delayed) | CNBC (NBCUniversal) and the underlying exchanges | CNBC terms of use; used only when Yahoo is unavailable |
 | Chokepoint transit data | Sources: UN Global Platform; IMF PortWatch (portwatch.imf.org) | IMF terms (imf.org/external/terms.htm); citation as given |
 | Sanctioned vessels | U.S. Department of the Treasury, OFAC Specially Designated Nationals list | U.S. government public data |
 | Scenario defaults | U.S. EIA (World Oil Transit Chokepoints), IEA | Public estimates, cited in the tool |

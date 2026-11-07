@@ -3,7 +3,20 @@
 // and the spreads traders watch for supply stress: time spreads, Brent–WTI, and the 3-2-1 crack.
 import { bus, fetchJSON, log } from "./util.js";
 import { raiseAlert } from "./alerts.js";
-import { prices, sparkBatch } from "./prices.js";
+import { prices, sparkBatch, cnbcQuotes } from "./prices.js";
+
+// Backup when Yahoo refuses this server: CNBC's continuation contracts (@LCO.1 = front ICE Brent, @CL.1 = front WTI, ...)
+const CNBC_ROOT = { BZ: "@LCO", CL: "@CL" };
+async function cnbcCurve(root) {
+  const syms = Array.from({ length: 14 }, (_, i) => `${CNBC_ROOT[root]}.${i + 1}`);
+  const data = await cnbcQuotes(syms);
+  return syms.map((s) => {
+    const q = data.get(s);
+    if (!q) return null;
+    const m = (q.name || "").match(/\((\w{3})'(\d{2})\)/); // "ICE Brent Crude (Jan'27)"
+    return { sym: s, label: m ? `${m[1]} ${m[2]}` : s, price: q.price, prev: q.prev, monthAgo: null, closes: [], time: Date.parse(q.time) / 1000 };
+  }).filter(Boolean);
+}
 
 const MONTH_CODES = "FGHJKMNQUVXZ";
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -31,8 +44,16 @@ async function loadCurve(root, frontPrice) {
     list.push({ sym: `${root}${code}${yy}.NYM`, label: `${MONTH_NAMES[d.getUTCMonth()]} ${yy}` });
   }
   // One request for all 18 contracts (shared hosting IPs get rate-limited on per-symbol calls)
-  const data = await sparkBatch(list.map((c) => c.sym), "1mo", "1d");
-  let out = list.map((c) => { const d = data.get(c.sym); const v = d && contractFrom(d); return v ? { ...c, ...v } : null; }).filter(Boolean);
+  let out;
+  try {
+    const data = await sparkBatch(list.map((c) => c.sym), "1mo", "1d");
+    out = list.map((c) => { const d = data.get(c.sym); const v = d && contractFrom(d); return v ? { ...c, ...v } : null; }).filter(Boolean);
+    curve.source = "Yahoo Finance";
+  } catch {
+    out = await cnbcCurve(root); // already starts at the front month
+    curve.source = "CNBC (Yahoo unavailable)";
+    frontPrice = null;
+  }
   // Stale = no trade in the last 5 days (expired)
   out = out.filter((c) => Date.now() / 1000 - c.time < 5 * 86400);
   if (frontPrice) {

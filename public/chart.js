@@ -117,7 +117,7 @@
       }
       add("Bars", c.length);
     }
-    rows.push(`<tr><td colspan="2" class="muted" style="padding-top:8px">${esc(m.exchange || "")} · ${esc(m.currency || "")} · as of ${utc(Date.parse(m.time) / 1000)} · delayed quote via Yahoo Finance</td></tr>`);
+    rows.push(`<tr><td colspan="2" class="muted" style="padding-top:8px">${esc(m.exchange || "")} · ${esc(m.currency || "")} · as of ${utc(Date.parse(m.time) / 1000)} · delayed quote via ${esc(d.source || "Yahoo Finance")}</td></tr>`);
     $("#cm-stats").innerHTML = rows.join("");
   }
 

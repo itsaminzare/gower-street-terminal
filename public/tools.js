@@ -72,7 +72,7 @@
 
   // ---------------------------------------------------------------- CURVE
   async function openCurve() {
-    head("FUTURES CURVE & SPREADS", "Brent (ICE-linked NYMEX BZ) and WTI (NYMEX CL) monthly contracts · delayed via Yahoo Finance");
+    head("FUTURES CURVE & SPREADS", "Brent and WTI monthly futures contracts · delayed");
     const cv = await fetch("/api/curve").then((r) => r.json());
     if (!cv.brent?.length) { $("#tm-body").innerHTML = `<div class="empty">Curve not available yet: ${esc(cv.error || "loading")}</div>`; return; }
     const sp = cv.spreads || {};
@@ -83,7 +83,7 @@
       ${Object.values(sp).map((s) => `<tr><td class="z">${esc(s.name)}</td><td><b>${s.value >= 0 ? "+" : ""}${s.value.toFixed(2)}</b> ${esc(s.unit)}</td>
         <td class="${(s.change ?? 0) >= 0 ? "up" : "down"}">${s.change == null ? "–" : (s.change >= 0 ? "+" : "") + s.change.toFixed(2)}</td><td class="muted">${s.legs.map(esc).join(" − ")}</td><td>${esc(s.note)}</td></tr>`).join("")}
       </tbody></table>
-      <div class="note">A downward-sloping curve (front month above later months) is <b>backwardation</b>: buyers pay up for prompt barrels, the classic sign of a supply scare. Updated ${cv.updated ? hhmm(cv.updated) : "–"}.</div>`;
+      <div class="note">Source: ${esc(cv.source || "Yahoo Finance")}, delayed. A downward-sloping curve (front month above later months) is <b>backwardation</b>: buyers pay up for prompt barrels, the classic sign of a supply scare. Updated ${cv.updated ? hhmm(cv.updated) : "–"}.</div>`;
     drawCurve(cv);
   }
   function drawCurve(cv) {
@@ -232,7 +232,7 @@
         <tr><td>AIS ship positions</td><td>${st.ais?.mode === "demo" ? pill(false, "DEMO (simulated)") : pill(st.ais?.connected, st.ais?.connected ? "LIVE" : "OFFLINE")}</td><td>aisstream.io · <code>AISSTREAM_API_KEY</code></td></tr>
         <tr><td>OFAC sanctioned vessels</td><td>${pill(st.sanctions?.ok, `${st.sanctions?.vessels || 0} vessels`)}</td><td>US Treasury SDN list, refreshed daily</td></tr>
         <tr><td>IMF PortWatch transits</td><td>${pill(st.flows?.ok, st.flows?.ok ? "OK" : "WAITING")}</td><td>${esc(st.flows?.error || "")}</td></tr>
-        <tr><td>Futures curve</td><td>${pill(st.curve?.ok, st.curve?.ok ? "OK" : "WAITING")}</td><td>Yahoo Finance, delayed</td></tr>
+        <tr><td>Futures curve</td><td>${pill(st.curve?.ok, st.curve?.ok ? "OK" : "WAITING")}</td><td>${esc(st.prices?.source || "Yahoo Finance")}, delayed</td></tr>
         <tr><td>AI analyst + chat</td><td>${pill(st.analyst?.enabled, st.analyst?.enabled ? "ON" : "OFF")}</td><td><code>ANTHROPIC_API_KEY</code></td></tr>
       </table></div>`;
     $("#notify-test")?.addEventListener("click", async () => {
