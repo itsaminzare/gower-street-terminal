@@ -6,33 +6,76 @@
 
 © 2026 Mohammadamin Zare, University College London. All rights reserved. No part of this software may be copied, modified or distributed without written permission; see [LICENSE](LICENSE). Third-party libraries, maps and data remain their owners' property; see [NOTICE.md](NOTICE.md).
 
-## The pitch: from a ship going dark to a sized trade, with a scorecard
+## Agentverse 2026 · Finance Track: summary for the judges
 
-About a fifth of the world's oil passes through the Strait of Hormuz, and the Red Sea route carries a large share of Europe–Asia trade. When something happens there, a trader has to answer four questions fast: **what happened, is it real, what is it worth, and how will I know if I'm wrong?** Gower Street Terminal answers all four on one screen.
+**Who it is for:** a **crude oil trader** at an energy trading firm who must react to Gulf and Red Sea shipping news within minutes, using half the picture.
 
-1. **What happened:** live ships in four chokepoints (Hormuz, Bab el-Mandeb, Suez, Cape of Good Hope), automated incident detection (ships stopping in the lane, going dark, distress signals, GPS jamming, sanctioned tankers, ship-to-ship transfers), IMF transit counts, credited news, official statements from every side, and social chatter.
-2. **Is it real:** every claim is attributed; official statements are labelled by side; social posts are marked unverified; the AI analyst grades each development *confirmed / likely / unverified*.
-3. **What is it worth:** the **Trade desk** turns the picture into 0–3 specific paper trades (Brent, WTI, the Brent–WTI spread, the refining crack, tanker equities…). Each has an entry, stop, target, horizon, probability and position size, and each cites a **historical base rate**.
-4. **How will I know if I'm wrong:** the server, not the AI, fixes entries at the live price, marks every idea to market, closes it on stop, target or expiry, and keeps score in **R** (multiples of the risk taken), plus a hit rate and a **Brier score** for calibration. A risk check rejects any idea whose own probability and reward:risk imply negative expected value.
+**The decision they get wrong:** **buying the spike on a headline**, often an unverified one: a "tanker attacked" post, a ship going dark on AIS (which can be jamming or spoofing), or one side's official claim. Our own data says that on average this loses money.
 
-### The research behind it (📊 Research)
+**What the agent does:**
+- **It reads the live picture:** ships in four chokepoints with automated incident detection, IMF transit counts, credited news, official statements from every side, social chatter, prices and the futures curve.
+- **It proposes 0–3 specific paper trades.** Each has an entry, stop, target, horizon, probability and size.
+- **Code checks every number. The AI never does arithmetic that matters.**
+- **A human approves or rejects every trade.**
 
-An event study of **20 Gulf / Red Sea incidents since 2019** (tanker attacks, seizures, carrier suspensions, state strikes, Abqaiq), measuring Brent, WTI, the crack spread, the Brent–WTI spread, tanker stocks and gold 1, 5 and 20 trading days later against every day since 2019. It is then tested **out of sample**: at each event, the rule may only use earlier events. What survives:
+**Where to look in the live app:**
+- the **Trade desk** tab, for proposals, approvals, the decision trace, the kill switch and the audit log;
+- **📊 Research**, for the evidence;
+- **▶ Red Sea 2024**, for the 90-second demo.
 
-- **Next-day oil direction after a headline is a coin flip** (5/14 out of sample). The desk does not sell it as an edge.
-- **Escalation premiums fade.** After state strikes, Brent's median move over 20 trading days is **−3.8%** (8 of 11 fell), against **+1.3%** for an average 20-day window. Trading the 20-day history of earlier events was right **9/14** times out of sample. This is a small sample: suggestive, not proof.
-- **Tanker stocks jump after shipping attacks in-sample** (Frontline +4.1% median over 5 days), but this **did not** survive out of sample, so the desk treats it as weak.
+### How each judging criterion is met
 
-The desk's prompt carries these findings, so its ideas are anchored to what has actually worked, with the sample size stated.
+| Criterion | What we built | Where |
+|---|---|---|
+| **Traceable reasoning** | Every trade has a **decision trace**: the raw data (with a link to the exact JSON input the agent saw), then the base rate (**looked up by code** from the event study), then the AI's judgement, then the maths (**code**: levels, costs, expected-value formula shown), then the risk checks (**code**), then the human decision, then the outcome. | Trade desk → "Decision trace"; `src/desk-core.js` |
+| **Testing on unseen data** | (1) An **event study** of 20 incidents since 2019 against every day since 2019. (2) A **walk-forward test**: each call may only use earlier events. It includes **costs**, a **buy-and-hold benchmark**, **bootstrap 90% CIs** and **binomial p-values**. (3) The **AI desk itself backtested** on the 20 incidents with point-in-time inputs, entering at the next close, against cash, buy-and-hold and a naive "buy the headline" rule. | 📊 Research; `scripts/build-research.mjs`, `scripts/agent-backtest.mjs` |
+| **Risk controls and oversight** | **Limits enforced in code:** ≤1% of book per trade, ≤3% open, one position per instrument, positive EV after costs, and the AI's probability may not exceed the historical hit rate by more than 25 points. Proposals **lapse after 60 min**, and approval **re-runs every check at the live price** and refuses if the price has run. **Human approval** is required for every trade. A **kill switch** (halt, or halt and flatten) is available. **Every action** (agent, server, human) goes in the **audit log**. | Trade desk; `src/desk.js` |
+| **Relevance and impact** | A specific user and failure (above). On screen, the desk refuses to sell next-day headline direction as an edge, flags simulated or unverified inputs, and blocks over-confident trades. | Trade desk |
+| **Ambition and technical quality** | A live multi-source maritime picture (AIS, IMF, OFAC, news, official statements, prices, curve) plus an agent that turns it into checked, explainable, human-approved trades. No build step; one Node server. | whole repo |
 
-### ▶ Red Sea 2024: a 90-second demo
+### Key results (all after costs; small samples, stated honestly)
 
-A replay of the 2023-24 Red Sea crisis day by day:
-- IMF PortWatch transits fall at Bab el-Mandeb (**−39%** by January) and climb around the Cape (**+42%**);
-- Brent and Frontline move alongside;
-- each incident appears with **what the playbook knew at the time** (walk-forward, earlier events only) and then what actually happened.
+| Test | Result |
+|---|---|
+| Next-day Brent direction after a headline (walk-forward) | **5/14** right (p = 0.91): **no edge** |
+| Fade escalation over 20 trading days (walk-forward) | **9/14** right (p = 0.21). **+1.32%** per event vs **−2.63%** buy-and-hold. Edge **+3.95%**, 90% CI **+0.5% to +7.5%**: **weak edge** |
+| Tanker stocks 5 days after shipping attacks | In-sample median **+4.1%**, but **no edge** out of sample |
+| **The AI desk itself on the 20 incidents** | **8 trades, 2 won, −1.73% of book in total**, against **0%** cash and **−0.79%** for a naive "buy the headline" rule. **It missed its benchmark.** It kept buying crude after the news, which is the very failure this tool targets. Its losses stayed small because of the risk limits. |
 
-*Paper trading and research only; not investment advice. Prices are delayed.* Rebuild the study with `node scripts/build-research.mjs`.
+The backtest showed the agent repeating the user's mistake, which is why the live desk is built around **human approval and hard limits**, not autonomy. Caveat: the model may know how these historical events turned out from its training data. The live paper record is the only truly unseen test, and the desk keeps it with a hit rate, P&L in R and a Brier score.
+
+### ▶ Red Sea 2024 replay
+
+A day-by-day replay of the 2023-24 Red Sea crisis:
+- IMF PortWatch transits fall at Bab el-Mandeb (**−39%** by January) and rise around the Cape (**+42%**), with Brent and Frontline alongside;
+- each incident appears with **what the playbook knew at the time** (earlier events only), followed by what happened.
+
+### Data and licences
+
+| Data | Used for | Licence / terms |
+|---|---|---|
+| Yahoo Finance chart API, CNBC quotes (fallback) | Live (delayed) prices, daily history for the event study | Publisher terms: personal / non-commercial use. Used for a non-commercial research demo, credited on screen |
+| IMF PortWatch (IMF & University of Oxford, via ArcGIS) | Daily chokepoint transits, Red Sea replay | Free public data with attribution to IMF PortWatch (see portwatch.imf.org terms) |
+| aisstream.io | Live AIS ship positions | Free API under aisstream.io terms |
+| VesselFinder embed | LIVE MAP view | Official embeddable widget, VesselFinder's terms. Their data, credited on the map, not used by our alerts or desk |
+| US Treasury OFAC SDN list | Sanctioned-vessel matching | US government public data |
+| News RSS (named outlets), Google News, Reddit RSS | Headlines and links, credited to each outlet | Headlines and links only; content remains the publishers' |
+| Esri World Dark Gray basemap | Map tiles | Esri terms, attributed on the map |
+| Anthropic Claude API | Analyst, chat, trade desk agent | Anthropic commercial terms |
+
+**Synthetic data:** `npm run demo` replaces AIS ships with **simulated** vessels. These are labelled "SIMULATED SHIPS" on screen and in every agent input, and the desk's checks flag them. No result in this README uses synthetic data.
+
+**Reproduce:**
+
+```bash
+node scripts/build-research.mjs
+```
+
+```bash
+node scripts/agent-backtest.mjs
+```
+
+The first rebuilds the event study and walk-forward test. The second re-runs the AI desk backtest (about 20 Claude calls). *Paper trading and research only. Nothing here can place a real order. Not investment advice.*
 
 ---
 

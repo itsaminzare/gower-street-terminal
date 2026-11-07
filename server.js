@@ -9,7 +9,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 try { process.loadEnvFile(path.join(here, ".env")); } catch { /* .env is optional */ }
 
 // Imported after .env is loaded so modules see its values
-const { bus, log, DEMO } = await import("./src/util.js");
+const { bus, log, DEMO, hashId } = await import("./src/util.js");
 const { ZONES } = await import("./src/zones.js");
 const sanctions = await import("./src/sanctions.js");
 const ais = await import("./src/ais.js");
@@ -98,10 +98,10 @@ const LIMITS = {
   askConcurrent: num(env.ASK_CONCURRENT_LIMIT, 2),
   manualRunMin: num(env.MANUAL_RUN_MIN_INTERVAL_MIN, 0), // minimum minutes between RUN NOW presses
 };
-const quota = { day: "", used: 0, perIp: new Map(), active: 0, lastManualRun: 0, lastDeskRun: 0 };
+const quota = { day: "", used: 0, perIp: new Map(), active: 0, lastManualRun: 0, lastDeskRun: 0, decisions: new Map() };
 function resetQuotaIfNewDay() {
   const day = new Date().toISOString().slice(0, 10);
-  if (quota.day !== day) Object.assign(quota, { day, used: 0, perIp: new Map() });
+  if (quota.day !== day) Object.assign(quota, { day, used: 0, perIp: new Map(), decisions: new Map() });
 }
 // Behind a hosting proxy the visitor's address is the first X-Forwarded-For entry
 const clientIp = (req) => String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress || "?";
@@ -156,14 +156,35 @@ http.createServer(async (req, res) => {
     const waitMin = LIMITS.manualRunMin - (Date.now() - quota.lastDeskRun) / 60_000;
     if (waitMin > 0) return json(res, 429, { error: `The desk ran recently. Try again in ${Math.ceil(waitMin)} min.` });
     if (dk.desk.running) return json(res, 409, { error: "The desk is already working on it." });
+    if (dk.desk.halted) return json(res, 423, { error: "The desk is halted (kill switch). Resume it first." });
     quota.lastDeskRun = Date.now();
     dk.runDesk("manual request from desk").then((r) => r?.error && log("desk", r.error));
     return json(res, 202, { started: true });
   }
+  // Human-in-the-loop: approve / reject proposals, close trades, kill switch. Every call is audit-logged with who made it.
+  if ((p === "/api/desk/decide" || p === "/api/desk/halt") && req.method === "POST") {
+    let body;
+    try { body = await readBody(req); } catch { return json(res, 400, { error: "bad JSON" }); }
+    const ip = clientIp(req);
+    resetQuotaIfNewDay();
+    const used = quota.decisions.get(ip) || 0;
+    if (used >= 120) return json(res, 429, { error: "Too many desk actions from you today." });
+    quota.decisions.set(ip, used + 1);
+    const actor = isLocal(req) ? "human (owner)" : `human (visitor ${hashId(ip).slice(0, 5)})`;
+    if (p === "/api/desk/halt") { dk.setHalt(!!body.halt, !!body.flatten, actor); return json(res, 200, { ok: true, halted: dk.desk.halted }); }
+    const r = dk.decide(String(body.id || ""), String(body.action || ""), actor);
+    return json(res, r.error ? 409 : 200, r);
+  }
+  if (p.startsWith("/api/desk/input/")) {
+    const raw = dk.runInput(p.slice("/api/desk/input/".length));
+    if (!raw) return json(res, 404, { error: "run input not found (inputs are kept for the last 60 runs and reset on redeploy)" });
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(raw);
+  }
   if (p === "/api/research") {
     if (!dk.research) return json(res, 404, { error: "research data missing" });
-    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" });
-    return res.end(JSON.stringify(dk.research));
+    res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "public, max-age=600" });
+    return res.end(JSON.stringify({ ...dk.research, agentBacktest: dk.agentBacktest }));
   }
   if (p === "/api/ask" && req.method === "POST") {
     let body;

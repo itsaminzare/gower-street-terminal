@@ -15,7 +15,7 @@
 
   // ---------------------------------------------------------------- RESEARCH
   async function openResearch() {
-    G.toolHead("EVENT STUDY · WHAT HISTORY SAYS", "How prices moved after 20 Gulf / Red Sea incidents since 2019 · daily closes · out-of-sample test");
+    G.toolHead("EVENT STUDY & BACKTEST", "How prices moved after 20 Gulf / Red Sea incidents since 2019 · out-of-sample rule test · the AI desk on the same incidents · all after costs");
     let r;
     try { r = await getResearch(); } catch (e) { $("#tm-body").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
     const S = r.stats, B = r.baseline, u = (k) => r.units[k];
@@ -25,18 +25,35 @@
     const baseRow = `<tr class="base"><td class="z">Every day since 2019 <small>(baseline)</small></td>${COLS.map(([k, h]) => `<td title="sd ${B[k][h].sd}"><b>${sgn(B[k][h].mean)}</b><small>mean · ${Math.round(B[k][h].up * 100)}% of days up</small></td>`).join("")}</tr>`;
     const fam = Object.entries(S.family).map(([f, g]) => row(`<b>${f === "shipping" ? "Shipping incidents" : "Escalation"}</b>`, g, `<br><small class="muted">${FAM[f]}</small>`)).join("");
     const kinds = Object.entries(S.kind).map(([k, g]) => row(`&nbsp;&nbsp;${esc(r.kindLabel[k])}`, g)).join("");
+    const civ = (c) => (c ? `<small>90% CI ${sgn(c[0])} to ${sgn(c[1])}</small>` : "");
     const wf = r.walkForward.map((w) => {
-      const holds = w.hitRate > 0.55 && w.avgPnl > 0 && w.avgPnl > w.alwaysLongAvg;
-      return `<tr><td class="z">${NAME[w.inst]} over ${w.h} trading day${w.h > 1 ? "s" : ""}</td><td>${w.hits}/${w.n}</td><td>${Math.round(w.hitRate * 100)}%</td>
-        <td class="${cls(w.avgPnl)}"><b>${sgn(w.avgPnl)}</b> ${w.unit}</td><td class="${cls(w.alwaysLongAvg)}">${sgn(w.alwaysLongAvg)} ${w.unit}</td>
-        <td>${holds ? '<span class="pill ok">HELD UP</span>' : '<span class="pill bad">NO EDGE</span>'}</td></tr>`;
+      // "Held up" only if the bootstrap interval of the edge over buy-and-hold excludes zero and the rule made money after costs
+      const holds = w.edgeVsLongCI90 && w.edgeVsLongCI90[0] > 0 && w.avgPnl > 0;
+      return `<tr><td class="z">${NAME[w.inst]} over ${w.h} trading day${w.h > 1 ? "s" : ""}</td><td>${w.hits}/${w.n} <small>p = ${w.pHits}</small></td>
+        <td class="${cls(w.avgPnl)}"><b>${sgn(w.avgPnl)}</b> ${w.unit}${civ(w.avgPnlCI90)}</td><td class="${cls(w.alwaysLongAvg)}">${sgn(w.alwaysLongAvg)} ${w.unit}</td>
+        <td class="${cls(w.edgeVsLong)}"><b>${sgn(w.edgeVsLong)}</b>${civ(w.edgeVsLongCI90)}</td>
+        <td>${holds ? '<span class="pill ok">EDGE (WEAK)</span>' : '<span class="pill bad">NO EDGE</span>'}</td></tr>`;
     }).join("");
+    const bt = r.agentBacktest, bs = bt?.summary;
+    const btHtml = bt ? `
+      <div class="mt">The AI desk itself on the same 20 incidents <span class="muted">· same prompt, maths and risk checks as live · inputs limited to what was known that day · entry at the next close · costs charged</span></div>
+      <div class="findings">
+        <div class="finding"><b class="${cls(bs.bookPctTotal)}">${sgn(bs.bookPctTotal)}%</b><span>Total P&L as % of book over 20 incidents (${bs.trades} trades on ${bs.eventsTraded} incidents; 90% CI per incident ${bs.bookPctPerEventCI90 ? `${sgn(bs.bookPctPerEventCI90[0])} to ${sgn(bs.bookPctPerEventCI90[1])}%` : "–"}).</span></div>
+        <div class="finding"><b>0% · ${sgn(bs.benchmarks.naiveBuyHeadlineBookPctTotal)}%</b><span>Benchmarks: staying in cash, and a naive rule that buys Brent on every headline with the same sizing. <b>The agent missed both.</b></span></div>
+        <div class="finding"><b>${bs.wins}/${bs.trades}</b><span>Winning trades (p = ${bs.pHits}); average ${sgn(bs.avgR)}R per trade; Brier ${bs.brier} (0.25 = coin flip): over-confident.</span></div>
+        <div class="finding"><b class="${cls(bs.benchmarks.buyHoldBrent20dPctPerEvent)}">${sgn(bs.benchmarks.buyHoldBrent20dPctPerEvent)}%</b><span>What buying Brent at each incident and holding 20 days returned per incident. The limits kept the agent's worst case small.</span></div>
+      </div>
+      <div class="note"><b>What went wrong:</b> with only early, positive base rates in hand, the agent kept buying crude after the news (the spike it was told not to chase), entered a day late, and was stopped out or bled as the premium faded. The live desk's prompt now carries the full study, and every live trade needs human approval. <b>Caveat:</b> ${esc(bs.caveat)}</div>
+      <table class="tbl rs ev"><thead><tr><th>Incident</th><th>Trade</th><th>P(win)</th><th>Entry → exit</th><th>How</th><th>Result</th></tr></thead><tbody>
+      ${bt.rows.flatMap((row) => (row.trades.length ? row.trades : [null]).map((t, j) => `<tr>${j === 0 ? `<td rowspan="${Math.max(1, row.trades.length)}">${row.date} <span class="muted">${esc(row.title || row.event)}</span></td>` : ""}
+        ${t ? `<td><span class="dir ${t.direction}">${t.direction}</span> ${esc(t.instrument)} ${t.horizonDays}d</td><td>${Math.round(t.probability * 100)}%</td><td>${t.entry} → ${t.exit ?? "–"}</td><td class="muted">${esc(t.how || (t.blockedBy ? "blocked" : ""))}</td><td class="${cls(t.R)}"><b>${t.R != null ? sgn(t.R) + "R" : "–"}</b></td>`
+          : `<td colspan="5" class="muted">No trade: ${esc((row.noTrade || "").slice(0, 140))}</td>`}</tr>`)).join("")}</tbody></table>` : "";
     const b20 = r.walkForward.find((w) => w.inst === "BRENT" && w.h === 20), b1 = r.walkForward.find((w) => w.inst === "BRENT" && w.h === 1);
     const esc20 = S.family.escalation.BRENT[20], ship5 = S.family.shipping.FRO[5];
     $("#tm-body").innerHTML = `
       <div class="findings">
         <div class="finding"><b class="down">${sgn(esc20.median)}%</b><span>Brent's median move <b>20 trading days</b> after a state strike or escalation (${esc20.n - esc20.up}/${esc20.n} fell), vs <b>${sgn(B.BRENT[20].mean)}%</b> on an average 20-day window. The war premium usually fades.</span></div>
-        <div class="finding"><b>${b20.hits}/${b20.n}</b><span>Out-of-sample hits for "trade the 20-day history of earlier, similar events" in Brent, averaging <b>${sgn(b20.avgPnl)}%</b> per event vs <b>${sgn(b20.alwaysLongAvg)}%</b> for just buying. Small sample: suggestive, not proof.</span></div>
+        <div class="finding"><b>${b20.hits}/${b20.n}</b><span>Out-of-sample hits for "trade the 20-day history of earlier, similar events" in Brent: <b>${sgn(b20.avgPnl)}%</b> per event after costs vs <b>${sgn(b20.alwaysLongAvg)}%</b> buy-and-hold (edge 90% CI ${b20.edgeVsLongCI90 ? `${sgn(b20.edgeVsLongCI90[0])} to ${sgn(b20.edgeVsLongCI90[1])}` : "–"}%; hits p = ${b20.pHits}). Suggestive, not proof.</span></div>
         <div class="finding"><b class="muted">${b1.hits}/${b1.n}</b><span>Out-of-sample hits for the same rule on the <b>next day</b>. Next-day oil direction after a headline is a coin flip, so the desk does not sell it as an edge.</span></div>
         <div class="finding"><b class="up">${sgn(ship5.median)}%</b><span>Frontline's median 5-day move after shipping incidents (${ship5.up}/${ship5.n} rose), vs ${sgn(B.FRO[5].mean)}% normally. Strong in-sample, but it did not survive the out-of-sample test.</span></div>
       </div>
@@ -45,7 +62,9 @@
       <div class="mt">Median move after incidents <span class="muted">· % for outrights, $/bbl for spreads · small figures: how many of the events rose</span></div>
       <table class="tbl rs"><thead><tr><th></th>${COLS.map(([k, h]) => `<th>${NAME[k]} ${h}d</th>`).join("")}</tr></thead><tbody>${fam}${kinds}${baseRow}</tbody></table>
       <div class="mt">Out-of-sample (walk-forward) test <span class="muted">· at each event, call the direction from the median move of EARLIER events of the same family only (needs ≥3), then score it</span></div>
-      <table class="tbl"><thead><tr><th>Rule applied to</th><th>Hits</th><th>Hit rate</th><th>Avg P&L per event</th><th>Just buying</th><th>Verdict</th></tr></thead><tbody>${wf}</tbody></table>
+      <table class="tbl rs"><thead><tr><th>Rule applied to</th><th>Hits <small>(one-sided binomial p)</small></th><th>Avg P&L per event, after costs</th><th>Buy-and-hold, after costs</th><th>Edge vs buy-and-hold</th><th>Verdict</th></tr></thead><tbody>${wf}</tbody></table>
+      <div class="note">Costs per round trip: ${Object.entries(r.costs || {}).map(([k, v]) => `${NAME[k] || k} ${v}${r.units[k] === "%" ? "%" : " $/bbl"}`).join(" · ")}. Confidence intervals: 5,000-sample bootstrap. "Edge (weak)" = the interval for the edge over buy-and-hold excludes zero; with 14 events, none of this is strong evidence.</div>
+      ${btHtml}
       <div class="mt">The 20 incidents</div>
       <table class="tbl rs ev"><thead><tr><th>Date</th><th>Incident</th><th>Type</th><th>Brent 1d</th><th>5d</th><th>20d</th><th>Crack 5d</th><th>FRO 5d</th></tr></thead><tbody>
       ${r.events.map((e) => `<tr><td>${e.date}</td><td class="z">${esc(e.title)}</td><td class="muted">${esc(r.kindLabel[e.kind])}</td>

@@ -43,6 +43,20 @@ export const KIND_LABEL = {
 // Kinds pooled together when a single kind has too few cases
 const FAMILY = { "tanker-attack": "shipping", seizure: "shipping", "shipping-disruption": "shipping", "supply-attack": "escalation", "state-strike": "escalation" };
 const HORIZONS = [1, 5, 20]; // trading days after the base close
+// Round-trip trading cost assumptions (spread + fees + slippage), applied to every scored trade.
+// Outrights in % of price, spreads in $/bbl. Deliberately conservative for liquid futures/stocks.
+export const COSTS = { BRENT: 0.05, WTI: 0.05, ULSD: 0.08, RBOB: 0.08, GOLD: 0.03, FRO: 0.12, STNG: 0.12, DHT: 0.15, BRENT_WTI: 0.04, CRACK: 0.12 };
+
+// Deterministic PRNG so the bootstrap is reproducible
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+function bootstrapCI(vals, stat, n = 5000, lo = 0.05, hi = 0.95) {
+  const r = rng(42), out = [];
+  for (let i = 0; i < n; i++) { const s = vals.map(() => vals[Math.floor(r() * vals.length)]); out.push(stat(s)); }
+  out.sort((a, b) => a - b);
+  return [out[Math.floor(lo * n)], out[Math.floor(hi * n)]];
+}
+// One-sided binomial test: P(X >= k | n, p=0.5)
+function binomP(k, n) { let p = 0; const c = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return r; }; for (let i = k; i <= n; i++) p += c(n, i) / 2 ** n; return p; }
 
 async function daily(sym) {
   const p1 = Math.floor(Date.parse("2018-10-01") / 1000), p2 = Math.floor(Date.now() / 1000);
@@ -155,7 +169,9 @@ const main = async () => {
       const actual = e.moves[k][h];
       if (prior.length < 3 || actual == null) return;
       const call = Math.sign(median(prior)) || 1;
-      rows.push({ id: e.id, call: call > 0 ? "LONG" : "SHORT", priorN: prior.length, priorMedian: r2(median(prior)), actual, pnl: r2(call * actual), hit: call * actual > 0 });
+      // P&L net of a round-trip trading cost
+      rows.push({ id: e.id, call: call > 0 ? "LONG" : "SHORT", priorN: prior.length, priorMedian: r2(median(prior)), actual,
+        gross: r2(call * actual), pnl: r2(call * actual - COSTS[k]), longNet: r2(actual - COSTS[k]), hit: call * actual - COSTS[k] > 0 });
     });
     const hits = rows.filter((r) => r.hit).length;
     const byFamily = {};
@@ -163,8 +179,12 @@ const main = async () => {
       const fr = rows.filter((r) => events.find((e) => e.id === r.id).family === f);
       if (fr.length) byFamily[f] = { n: fr.length, hits: fr.filter((r) => r.hit).length, avgPnl: r2(mean(fr.map((r) => r.pnl))) };
     }
+    const pn = rows.map((r) => r.pnl), edge = rows.map((r) => r.pnl - r.longNet);
     walk.push({ inst: k, h, n: rows.length, hits, hitRate: rows.length ? r2(hits / rows.length) : null, byFamily,
-      avgPnl: rows.length ? r2(mean(rows.map((r) => r.pnl))) : null, alwaysLongAvg: rows.length ? r2(mean(rows.map((r) => r.actual))) : null,
+      cost: COSTS[k], pHits: Math.round(binomP(hits, rows.length) * 1000) / 1000,
+      avgPnlCI90: rows.length > 2 ? bootstrapCI(pn, mean).map(r2) : null,
+      edgeVsLong: rows.length ? r2(mean(edge)) : null, edgeVsLongCI90: rows.length > 2 ? bootstrapCI(edge, mean).map(r2) : null,
+      avgPnl: rows.length ? r2(mean(pn)) : null, alwaysLongAvg: rows.length ? r2(mean(rows.map((r) => r.longNet))) : null,
       unit: SPREADS.has(k) ? "$/bbl" : "%", rows });
   }
 
@@ -180,11 +200,19 @@ const main = async () => {
     events: events.filter((e) => e.date >= "2023-09-01" && e.date <= "2024-04-30").map((e) => e.id),
   };
 
+  // Bootstrap 90% intervals for the headline family statistics (mean move)
+  for (const f of Object.keys(stats.family)) for (const k of INST) for (const h of HORIZONS) {
+    const v = events.filter((e) => e.family === f).map((e) => e.moves[k][h]).filter((x) => x != null && Math.abs(x) < 100);
+    if (stats.family[f][k][h] && v.length > 2) stats.family[f][k][h].meanCI90 = bootstrapCI(v, mean).map(r2);
+  }
+  // Daily closes for the agent backtest (scripts/agent-backtest.mjs scores ideas along the real price path)
+  const closes = Object.fromEntries(INST.map((k) => [k, [...series[k]].filter(([d]) => d >= "2019-01-01").sort(([a], [b]) => a.localeCompare(b)).map(([d, v]) => [d, r2(v)])]));
+  fs.writeFileSync(path.join(path.dirname(OUT), "prices-daily.json"), JSON.stringify({ source: "Yahoo Finance daily closes (front-month continuous futures, NYSE stocks)", built: new Date().toISOString(), daily: closes }));
   const units = Object.fromEntries(INST.map((k) => [k, SPREADS.has(k) ? "$/bbl" : "%"]));
   fs.writeFileSync(OUT, JSON.stringify({ built: new Date().toISOString(), source: "Yahoo Finance daily closes; IMF PortWatch (UN Global Platform)",
-    horizons: HORIZONS, units, kindLabel: KIND_LABEL, baseline, events, stats, walkForward: walk, crisis }, null, 0));
+    horizons: HORIZONS, units, kindLabel: KIND_LABEL, costs: COSTS, baseline, events, stats, walkForward: walk, crisis }, null, 0));
   console.log("Wrote", OUT);
-  for (const w of walk) console.log(` walk-forward ${w.inst} ${w.h}d: ${w.hits}/${w.n} hits, avg ${w.avgPnl}${w.unit} vs always-long ${w.alwaysLongAvg}`);
+  for (const w of walk) console.log(` walk-forward ${w.inst} ${w.h}d: ${w.hits}/${w.n} hits (p=${w.pHits}), avg net ${w.avgPnl}${w.unit} [90% CI ${w.avgPnlCI90}] vs long ${w.alwaysLongAvg}; edge ${w.edgeVsLong} [${w.edgeVsLongCI90}]`);
   const s = stats.family;
   for (const f of Object.keys(s)) console.log(` ${f}: Brent 1d median ${s[f].BRENT[1]?.median}% (n=${s[f].BRENT[1]?.n}), 5d ${s[f].BRENT[5]?.median}%, 20d ${s[f].BRENT[20]?.median}%; FRO 5d ${s[f].FRO[5]?.median}%`);
 };
