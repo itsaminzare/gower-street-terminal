@@ -1,0 +1,57 @@
+{
+  "label": "CHALLENGE (self-serve): hidden real-markets cases",
+  "dataset": {
+    "version": 2,
+    "mode": "challenge",
+    "source": "Price returns derived from Binance Vision public data (CC BY-NC-SA 4.0). Not endorsed by Binance. Months drawn: 59 (hidden until reveal).",
+    "seed": null,
+    "pack": "real-markets",
+    "case_count": 60,
+    "tasks": {
+      "markets": 60
+    }
+  },
+  "dataset_cases": 60,
+  "attempted": 60,
+  "passed": 0,
+  "failed": 0,
+  "errors": 0,
+  "strategy_runs_completed": 60,
+  "not_run": 0,
+  "cycle_record_metrics": {
+    "cycle_precision": null,
+    "cycle_recall": null,
+    "cycle_f1": null
+  },
+  "market_summary": {
+    "paths": 60,
+    "wins_vs_buy_and_hold": 32,
+    "losses_vs_buy_and_hold": 28,
+    "ties": 0,
+    "beat_cash": 17,
+    "median_excess_vs_buy_and_hold_bps_of_capital": 56,
+    "mean_max_drawdown_bps": 654,
+    "sign_test_p_value": 0.6988834276200057,
+    "verdict": "Not distinguishable from buy-and-hold on these paths; more paths or a better edge is needed."
+  },
+  "challenge": {
+    "commitment": "bfbe504de16a35559c5ceac224a2dfc252c25c1a0d3888408c2dbe32e06e1505",
+    "seed_status": "fresh random; revealed in SEED-REVEAL.txt after this run",
+    "kit_fingerprint": "5c90bf815848f4edd85bb2446e00382a24f003d936b3bad72f297a3b7885dad9",
+    "provenance": {
+      "project": "C:\\Users\\aminz\\Gower Street Terminal",
+      "files_scanned": 29,
+      "adapter_command": [
+        "C:\\Program Files\\nodejs\\node.exe",
+        "C:\\Users\\aminz\\Gower Street Terminal\\scripts\\agentverse-adapter.mjs"
+      ],
+      "adapter_file_sha256": {
+        "C:\\Users\\aminz\\Gower Street Terminal\\scripts\\agentverse-adapter.mjs": "5f08ea2c57134bb4ba8059067307d75d1f3c750772c7ae5e9fbcd4b7860bdc07"
+      },
+      "git_head": null,
+      "git_dirty_files": null,
+      "warnings": []
+    }
+  },
+  "limits": "Passing defined checks does not validate an entire product. Market completion is not profitability. Synthetic data is not a real-world benchmark. This runner is not an OS security sandbox."
+}

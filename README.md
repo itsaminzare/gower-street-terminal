@@ -45,6 +45,24 @@ The last result is why the desk is built around human approval and hard limits r
 
 Reproduce with `node scripts/build-research.mjs` and `node scripts/agent-backtest.mjs`.
 
+### Sealed hidden test (Agentverse finance kit)
+
+The kit's `real-markets` challenge supplies prices only, with no news, so it cannot exercise the news-driven agent. It does test the desk's deterministic risk layer, packaged as a long-only, price-only strategy in [`src/strategy.js`](src/strategy.js): volatility-scaled trailing stops, entry only when the expected move clears costs, exit when the trend breaks. The kit generated 60 windows of real Binance Vision prices in memory after the code was fixed, committed to its seed before the run and revealed it afterwards. Orders fill at the next bar, with fees and slippage.
+
+| Result (60 hidden real-price paths) | |
+|---|---|
+| Wins / losses against buy-and-hold | 32 / 28 (sign test p = 0.70) |
+| Median excess over buy-and-hold | +0.56% of capital |
+| Beat holding cash | 17 of 60 |
+| Mean maximum drawdown | 6.5% |
+| Verdict | Not distinguishable from buy-and-hold |
+
+Full report, seed commitment and reveal: [`evidence/agentverse-challenge-real-markets-60`](evidence/agentverse-challenge-real-markets-60/REPORT.md). The adapter's SHA-256 recorded by the kit (`5f08ea2c…bdc07`) matches [`scripts/agentverse-adapter.mjs`](scripts/agentverse-adapter.mjs). To rerun, with the kit's `finance` folder:
+
+```bash
+python bench.py challenge --pack real-markets --cases 60 --project <repo> --output <new-dir> --adapter node <repo>/scripts/agentverse-adapter.mjs
+```
+
 ## Running it
 
 Requires Node.js 22 or later.
@@ -72,7 +90,7 @@ Copy `.env.example` to `.env` to add keys. All are optional; any panel without i
 
 ## Data sources
 
-Yahoo Finance and CNBC (delayed prices) · IMF PortWatch (chokepoint transits) · aisstream.io (AIS) · US Treasury OFAC SDN list (sanctions) · named news outlets, Google News and Reddit (headlines, credited) · VesselFinder (embedded map) · Esri and OpenSeaMap (map tiles) · Anthropic Claude (analysis). Each is used under its provider's terms; see [NOTICE.md](NOTICE.md).
+Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real-price windows in the kit's hidden test, not endorsed by Binance) · IMF PortWatch (chokepoint transits) · aisstream.io (AIS) · US Treasury OFAC SDN list (sanctions) · named news outlets, Google News and Reddit (headlines, credited) · VesselFinder (embedded map) · Esri and OpenSeaMap (map tiles) · Anthropic Claude (analysis). Each is used under its provider's terms; see [NOTICE.md](NOTICE.md).
 
 ## Limitations
 
