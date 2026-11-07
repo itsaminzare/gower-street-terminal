@@ -11,7 +11,7 @@
   const RELEVANT = /hormuz|red sea|mandeb|gulf of (aden|oman)|persian gulf|tanker|vessel|\bships?\b|shipping|ukmto|suez/i;
   const OFFICIAL_TOPIC = /hormuz|red sea|mandeb|gulf|tanker|vessel|\bships?\b|shipping|strait|iran|houthi|yemen|irgc|navy|naval|missile|drone|attack|oil/i;
   const IMPORTANT_WARNINGS = new Set(["ais-dark", "sts-transfer", "flow-drop", "spread-move", "price-move", "sudden-stop"]);
-  const KEY_BODIES = new Set(["CENTCOM", "UKMTO", "IRGC", "Iran Foreign Ministry", "Houthi military (Saree)", "Houthi leadership"]);
+  const KEY_BODIES = new Set(["CENTCOM", "UKMTO", "IRGC", "Iran Foreign Ministry", "Houthi military (Saree)", "Houthi leadership", "IDF", "Israel PM's Office"]);
   const seen = new Set();
   let lastSig = "";
 

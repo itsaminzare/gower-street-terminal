@@ -50,10 +50,25 @@ export const OFFICIAL_SOURCES = [
   // Gulf states
   { org: "Saudi Press Agency", side: "GULF", mode: "direct", url: gnews("site:spa.gov.sa when:7d"), topic: true },
   { org: "WAM (UAE state agency)", side: "GULF", mode: "direct", url: gnews("site:wam.ae when:7d"), topic: true },
-  // UK / UN / maritime security
+  // Israel: the IDF, the Prime Minister's Office and the Foreign Ministry, as reported (their own sites block automated access)
+  { org: "IDF", side: "ISRAEL", mode: "relayed", url: gnews("(IDF OR \"Israel Defense Forces\" OR \"Israeli military\") (Iran OR Houthi OR Yemen OR \"Red Sea\" OR Hormuz OR Hezbollah) when:3d"),
+    // The IDF must be the one speaking, not just mentioned
+    // Speaking verbs, or the body as the headline's attribution ("…: IDF - Outlet" / "IDF: …"); "credit: IDF" photo captions don't count
+    must: /(idf|israel defen[cs]e forces|israeli military|israeli army)( spokesman| chief| spokesperson)?\s+(says?|said|warns?|warned|claims?|claimed|announces?|announced|confirms?|confirmed|statement)|:\s*(idf|israeli military)\s*(-|$)|^(idf|israeli military)\s*:/i,
+    mustTitle: true, also: /iran|houthi|yemen|hormuz|red sea|tanker|gulf|missile/i },
+  { org: "Israel PM's Office", side: "ISRAEL", mode: "relayed", url: gnews("(Netanyahu OR \"Prime Minister's Office\") (Iran OR Houthi OR Hormuz OR \"Red Sea\" OR Yemen) when:3d"),
+    // Netanyahu / his office must be the one speaking ("Netanyahu says…", "…: Netanyahu"), not the subject of someone else's story
+    must: /(netanyahu|prime minister'?s office|israeli (pm|prime minister))\s+(says?|said|warns?|warned|vows?|vowed|tells|told|announces?|announced|threatens?|threatened|claims?|claimed|confirms?|confirmed|statement)|:\s*netanyahu\s*(-|$)|^netanyahu\s*:/i,
+    mustTitle: true, also: /iran|houthi|hormuz|red sea|yemen|tanker|irgc|gulf/i },
+  { org: "Israel Foreign Ministry", side: "ISRAEL", mode: "relayed", url: gnews("(\"Israeli Foreign Ministry\" OR \"Israel's foreign minister\" OR \"Israeli foreign minister\") (Iran OR Houthi OR Yemen) when:7d"),
+    must: /israel(i|'s)? foreign (ministry|minister)\s+(says?|said|warns?|warned|condemns?|condemned|calls?|urges?|statement|announces?)|:\s*israel(i|'s)? foreign (ministry|minister)\s*(-|$)/i,
+    also: /iran|houthi|yemen|hormuz|red sea|tanker|gulf/i },
+  // UK / maritime security
+
   { org: "UK Foreign Office", side: "UK", mode: "direct", url: "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=foreign-commonwealth-development-office", topic: true },
   { org: "UK Ministry of Defence", side: "UK", mode: "direct", url: "https://www.gov.uk/search/news-and-communications.atom?organisations%5B%5D=ministry-of-defence", topic: true },
   { org: "UKMTO", side: "UK", mode: "relayed", url: gnews("UKMTO (advisory OR incident OR warning) when:7d"), must: /ukmto/i },
+  // United Nations
   { org: "UN News", side: "UN", mode: "direct", url: "https://news.un.org/feed/subscribe/en/news/region/middle-east/feed/rss.xml", topic: true },
 ];
 

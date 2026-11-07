@@ -592,7 +592,10 @@ button.on { background: #2a3442; color: #fff; border-color: #3d4b5e; }
 
 /* quote strip */
 #ticker { background: var(--line); gap: 1px; }
-.tick { height: 50px; padding: 4px 8px; background: #121519; }
+.tick { height: 62px; padding: 6px 10px 7px; background: #121519; }
+.tick > div:first-child { line-height: 15px; }
+.tick .p { line-height: 21px; margin-top: 1px; }
+.tick .c { line-height: 15px; margin-top: 1px; }
 .tick .l { font: 600 10px var(--ui); letter-spacing: .6px; color: var(--text-2); }
 .tick .u { font-size: 9px; color: var(--muted); }
 .tick .p { font: 500 16px var(--font); color: #eef1f4; }
@@ -683,8 +686,21 @@ button.on { background: #2a3442; color: #fff; border-color: #3d4b5e; }
 .rail i.now { width: 8px; height: 8px; top: -2px; transform: translateX(-4px); border: 0; }
 .closed-tbl td, .log-tbl td { border-bottom-color: #1d2126; }
 .log-tbl .a-human { color: var(--accent); }
-.ask-log .msg .who { font-size: 10px; }
-#ask-form input { border-radius: 0; background: #101317; border: 1px solid var(--line-2); font-size: 12px; }
+.ask-log { padding: 8px 10px; font-size: 12px; line-height: 1.45; }
+.ask-log .msg .who { font: 600 10px var(--ui); letter-spacing: .6px; color: var(--muted); }
+.ask-log .msg.user .who { color: var(--accent); }
+.ask-log .msg .txt, .ask-log .msg.user .txt { color: var(--text); }
+.ask-log .msg.assistant .txt { color: var(--text-2); }
+.ask-quota { font-size: 10px; color: var(--muted); padding: 0 10px; }
+#ask-form { padding: 6px 8px; gap: 6px; }
+#ask-form input { border-radius: 0; background: #101317; border: 1px solid var(--line-2); font: 12px var(--ui); color: var(--text); padding: 0 8px; height: 26px; }
+#ask-form input:focus { outline: none; border-color: var(--accent); }
+#ask-form button { height: 26px; background: #20252b; color: var(--text); border: 1px solid var(--line-2); font-weight: 600; }
+#ask-form button:hover { border-color: var(--accent); }
+/* VesselFinder's map is light; render it dark so switching between Live map and Own map keeps the same look.
+   Inverting then rotating hue by 180° keeps ship colours close to their originals. */
+/* (the frame's own background is filtered too, so it is set light here to come out dark while the map loads) */
+iframe.livemap { filter: invert(.9) hue-rotate(180deg) brightness(.92) contrast(.92); background: #e6edf3; }
 
 /* breaking strip + footer */
 #breaking { height: 24px; background: #121417; border-top: 1px solid var(--line); }

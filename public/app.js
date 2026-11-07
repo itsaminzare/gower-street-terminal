@@ -540,10 +540,10 @@
     ({ news: renderNews, social: renderSocial, official: renderOfficial })[g.dataset.target]();
   }));
 
-  const SIDE = { US: "US", IRAN: "IRAN", HOUTHI: "YEMEN/HOUTHI", GULF: "GULF", UK: "UK", UN: "UN" };
+  const SIDE = { US: "US", IRAN: "IRAN", ISRAEL: "ISRAEL", HOUTHI: "YEMEN/HOUTHI", GULF: "GULF", UK: "UK", UN: "UN" };
   function renderOfficial(freshIds = new Set()) {
     const f = state.filters.official;
-    const list = state.official.filter((s) => f === "ALL" || s.side === f || (f === "UK" && s.side === "UN"));
+    const list = state.official.filter((s) => f === "ALL" || s.side === f);
     $("#official").innerHTML = list.length ? list.slice(0, 150).map((s) => `
       <div class="item${s.incident ? " incident" : ""}${freshIds.has(s.id) ? " fresh" : ""}">
         <div class="meta"><span class="side ${s.side}">${SIDE[s.side]}</span><span class="org">${esc(s.org)}</span>
@@ -594,7 +594,9 @@
     $("#an-tabs").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     anTab = b.dataset.t;
     const ask = anTab === "ask";
-    $("#analyst").hidden = anTab !== "brief"; $("#desk").hidden = anTab !== "desk"; $("#ask").hidden = !ask; $("#run-analyst").hidden = ask;
+    $("#analyst").hidden = anTab !== "brief"; $("#desk").hidden = anTab !== "desk"; $("#ask").hidden = !ask;
+    // Keep the button's space when it isn't needed, so the tabs don't jump sideways when switching to Ask
+    $("#run-analyst").style.visibility = ask ? "hidden" : "";
     if (anTab === "desk") window.dispatchEvent(new Event("gst:desk"));
     if (ask) { renderChat(); refreshQuota(); $("#ask-input").focus(); }
   });
