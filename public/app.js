@@ -537,7 +537,7 @@
     ({ news: renderNews, social: renderSocial, official: renderOfficial })[g.dataset.target]();
   }));
 
-  const SIDE = { US: "US", IRAN: "IRAN", ISRAEL: "ISRAEL", HOUTHI: "YEMEN/HOUTHI", GULF: "GULF", UK: "UK", UN: "UN" };
+  const SIDE = { US: "US", IRAN: "IRAN", ISRAEL: "ISRAEL", HOUTHI: "YEMEN/HOUTHI", GULF: "PERSIAN GULF", UK: "UK", UN: "UN" };
   function renderOfficial(freshIds = new Set()) {
     const f = state.filters.official;
     const list = state.official.filter((s) => f === "ALL" || s.side === f);

@@ -116,7 +116,7 @@ export function systemPrompt({ asOf } = {}) {
   // base rates of events BEFORE that date, supplied in the input.
   const study = asOf
     ? `Base rates from incidents BEFORE today are supplied in the input (point-in-time). Small samples: weigh them accordingly.`
-    : `What the desk's event study (20 Gulf/Red Sea incidents since 2019, walk-forward tested, net of costs) says:
+    : `What the desk's event study (20 Persian Gulf/Red Sea incidents since 2019, walk-forward tested, net of costs) says:
 - Next-day direction of crude after a headline is close to a coin flip out of sample. Do not sell 1-day "headline" direction as an edge.
 - After state strikes / escalation, Brent's median path fades over ~20 trading days. Fading that premium is the one rule that held out of sample, beating buy-and-hold by about 4% per event after costs, but on only 14 events (hit rate not statistically significant).
 - After attacks on shipping, crude and tanker equities rose in-sample over 5 days, but this did NOT hold out of sample. Treat it as weak.`;
@@ -133,6 +133,7 @@ How you work:
 - Expected value after costs must be positive under your own numbers; risk_pct (paper risk as % of book if the stop is hit) between 0.25 and 1.0.
 - Evidence: name sources as the input gives them. Social posts are unverified; official statements are each side's position.
 - invalidation: the specific news or price action that would prove the idea wrong.
+- Naming: always call the body of water the "Persian Gulf" (never "the Gulf" on its own or "Arabian Gulf"), and the states around it "Persian Gulf states". Exact quotes from a source keep their original wording.
 - This is research for a paper-trading tool, not investment advice.`;
 }
 

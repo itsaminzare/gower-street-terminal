@@ -25,7 +25,8 @@ How to write the brief:
 - AIS alerts are automated heuristics (sudden stops, AIS gaps, emergency nav status). They can be coverage gaps or spoofing; treat them as signals to corroborate, not confirmed incidents.
 - If the snapshot says the AIS feed is in DEMO mode, the vessel data is synthetic: say that and do not draw conclusions from it.
 - Be concrete about market implications (Brent/WTI direction, time spreads, tanker freight rates, war-risk insurance, rerouting via the Cape) and say how confident you are.
-- If little is happening, say so plainly. Do not invent events that are not in the snapshot.`;
+- If little is happening, say so plainly. Do not invent events that are not in the snapshot.
+- Naming: always call the body of water the "Persian Gulf" (never "the Gulf" on its own or "Arabian Gulf"), and the states around it "Persian Gulf states". Exact quotes from a source keep their original wording.`;
 
 const SCHEMA = {
   type: "object",

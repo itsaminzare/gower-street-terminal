@@ -15,7 +15,7 @@
 
   // ---------------------------------------------------------------- RESEARCH
   async function openResearch() {
-    G.toolHead("EVENT STUDY & BACKTEST", "How prices moved after 20 Gulf / Red Sea incidents since 2019 · out-of-sample rule test · the AI desk on the same incidents · all after costs");
+    G.toolHead("EVENT STUDY & BACKTEST", "How prices moved after 20 Persian Gulf / Red Sea incidents since 2019 · out-of-sample rule test · the AI desk on the same incidents · all after costs");
     let r;
     try { r = await getResearch(); } catch (e) { $("#tm-body").innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
     const S = r.stats, B = r.baseline, u = (k) => r.units[k];

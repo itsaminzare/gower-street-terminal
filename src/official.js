@@ -47,7 +47,7 @@ export const OFFICIAL_SOURCES = [
     must: /saree|houthis? (say|said|claim|announce|warn|threaten)|houthi (military )?spokesman/i },
   { org: "Houthi leadership", side: "HOUTHI", mode: "relayed", url: gnews("(\"Abdul-Malik al-Houthi\" OR \"Ansar Allah\" statement) when:7d"),
     must: /ansar allah (condemn|say|warn|announce|political)|abdul-?malik al-houthi (say|said|warn|vow)|houthi leader (say|said|warn|vow)|political bureau/i },
-  // Gulf states
+  // Persian Gulf states
   { org: "Saudi Press Agency", side: "GULF", mode: "direct", url: gnews("site:spa.gov.sa when:7d"), topic: true },
   { org: "WAM (UAE state agency)", side: "GULF", mode: "direct", url: gnews("site:wam.ae when:7d"), topic: true },
   // Israel: the IDF, the Prime Minister's Office and the Foreign Ministry, as reported (their own sites block automated access)

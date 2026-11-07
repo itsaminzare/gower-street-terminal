@@ -138,7 +138,7 @@
     iranBypass: 0.3,   // Iran Goreh–Jask (Iranian barrels only)
     stocks: 2.0,       // coordinated IEA/strategic stock release, mb/d
     demand: 104,       // world oil demand, mb/d
-    capeDays: 12,      // extra voyage days Gulf→Europe via the Cape vs Suez
+    capeDays: 12,      // extra voyage days Persian Gulf→Europe via the Cape vs Suez
   };
   function openScenario() {
     head("DISRUPTION SCENARIO", "What-if calculator · illustrative, built on public EIA/IEA estimates · every input is editable");
@@ -205,7 +205,7 @@
           <li>Strategic stocks at ${stocks.toFixed(1)} mb/d would last about ${(1200 / Math.max(stocks, 0.1)).toFixed(0)} days against the ~1.2 bn bbl of government-held IEA stocks.</li>
           <li>Watch: Brent M1–M6 backwardation, Brent–Dubai, VLCC freight (TD3C), war-risk premiums, and the Cape traffic counts on the FLOWS screen.</li>
         </ul>
-        <div class="note">Illustrative only, not a forecast. Real outcomes depend on duration expectations, OPEC+ spare capacity outside the Gulf, demand destruction and policy. Defaults: EIA <i>World Oil Transit Chokepoints</i>, IEA emergency stock data.</div>`;
+        <div class="note">Illustrative only, not a forecast. Real outcomes depend on duration expectations, OPEC+ spare capacity outside the Persian Gulf, demand destruction and policy. Defaults: EIA <i>World Oil Transit Chokepoints</i>, IEA emergency stock data.</div>`;
     };
     $("#sc-form").addEventListener("input", calc);
     calc();

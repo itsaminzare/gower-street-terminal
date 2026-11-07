@@ -12,7 +12,7 @@ const UA = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKi
 // Instruments studied. CRACK and BRENT_WTI are built from the legs ($/bbl).
 const SYMS = { BRENT: "BZ=F", WTI: "CL=F", ULSD: "HO=F", RBOB: "RB=F", GOLD: "GC=F", FRO: "FRO", STNG: "STNG", DHT: "DHT" };
 
-// Incidents since 2019 that hit Gulf / Red Sea shipping or regional oil supply.
+// Incidents since 2019 that hit Persian Gulf / Red Sea shipping or regional oil supply.
 // `base` = the last daily close BEFORE the news reached the market (weekend / overnight events use the prior close).
 export const EVENTS = [
   { id: "fujairah-2019", date: "2019-05-12", base: "2019-05-10", kind: "tanker-attack", zone: "HORMUZ", title: "Four tankers sabotaged off Fujairah" },

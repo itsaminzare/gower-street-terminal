@@ -70,7 +70,7 @@ export const ZONES = {
     ],
   },
 };
-ZONES.HORMUZ.dirs = ["Inbound (to Gulf)", "Outbound"];
+ZONES.HORMUZ.dirs = ["Inbound (to Persian Gulf)", "Outbound"];
 ZONES.BAB.dirs = ["Northbound (to Red Sea)", "Southbound"];
 
 // The waterway itself, highlighted on the maps so users see where the traffic that matters passes.

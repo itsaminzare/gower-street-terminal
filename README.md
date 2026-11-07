@@ -11,7 +11,7 @@
 
 A real-time maritime-risk terminal for the world's oil chokepoints: the **Strait of Hormuz**, **Bab el-Mandeb**, the **Suez Canal** and the **Cape of Good Hope**. It brings together live shipping data, verified news and official statements, energy prices, and an AI trading agent whose every proposal is computed, risk-checked and audited in code, and approved by a human.
 
-Built by **Mohammadamin Zare** at University College London. The idea came from a simple question: when a tanker is hit in the Gulf, what should a trader actually do, and how would they know whether they were right?
+Built by **Mohammadamin Zare** at University College London. The idea came from a simple question: when a tanker is hit in the Persian Gulf, what should a trader actually do, and how would they know whether they were right?
 
 ---
 
@@ -21,7 +21,7 @@ Built by **Mohammadamin Zare** at University College London. The idea came from 
 |---|---|
 | **Ships** | Live AIS positions in four chokepoints, with tankers highlighted, 24-hour replay, transit counts and a VesselFinder view for areas the free feed cannot see |
 | **Incidents** | Automatic alerts for distress signals, sudden stops in the lane, ships going dark, GPS jamming, OFAC-sanctioned vessels and suspected ship-to-ship transfers |
-| **Information** | Credited news from named outlets; official statements from the US, Iran, Israel, the Houthis, the Gulf states, the UK and the UN, each labelled by side; social posts marked unverified |
+| **Information** | Credited news from named outlets; official statements from the US, Iran, Israel, the Houthis, the Persian Gulf states, the UK and the UN, each labelled by side; social posts marked unverified |
 | **Markets** | Brent, WTI, products, gas, gold and tanker equities; futures curve and spreads; IMF PortWatch transit data; a disruption scenario calculator |
 | **AI analyst** | A sourced risk brief every hour and after critical alerts, plus a chat that answers from the live data |
 | **Trade desk** | An agent proposes paper trades; code prices them, checks them against hard limits and logs every step; a human approves or rejects |
@@ -30,7 +30,7 @@ Built by **Mohammadamin Zare** at University College London. The idea came from 
 
 The model contributes judgement only: direction, probability, horizon and the evidence behind it. Everything else is deterministic:
 
-- **Base rates** are looked up from an event study of 20 Gulf and Red Sea incidents since 2019, not written by the model.
+- **Base rates** are looked up from an event study of 20 Persian Gulf and Red Sea incidents since 2019, not written by the model.
 - **Levels, costs and expected value** are computed in code, and the formula is shown for every trade.
 - **Risk limits** are enforced in code: at most 1% of book per trade and 3% in total, one position per instrument, positive expected value after costs, and a cap on how far the model's confidence may exceed history.
 - **Human approval** is required for every trade. A kill switch halts or flattens the book, and every action by the agent, the server or a person is written to an audit log.
