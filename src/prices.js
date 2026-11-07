@@ -20,31 +20,45 @@ export const INSTRUMENTS = [
 export const prices = {};
 export const priceStatus = { ok: false, lastPoll: null, error: null };
 
-async function quote(sym) {
+/**
+ * Many symbols in ONE request via Yahoo's spark endpoint (hosting IPs are shared and rate-limited,
+ * so one call per refresh instead of one per symbol). Returns Map sym -> {meta, timestamps, closes}.
+ */
+export async function sparkBatch(symbols, range = "1d", interval = "5m") {
   let lastErr;
   for (const host of ["query1", "query2"]) {
     try {
-      const j = await fetchJSON(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=5m&range=1d&includePrePost=false`);
-      const r = j.chart?.result?.[0];
-      if (!r) throw new Error("no result");
-      const m = r.meta;
-      const closes = (r.indicators?.quote?.[0]?.close || []).filter((x) => x != null);
-      const price = m.regularMarketPrice ?? closes.at(-1);
-      const prev = m.chartPreviousClose ?? m.previousClose;
-      return { price, prev, change: price - prev, pct: ((price - prev) / prev) * 100, spark: closes.slice(-78),
-        time: new Date((m.regularMarketTime || Date.now() / 1000) * 1000).toISOString(), currency: m.currency };
+      const j = await fetchJSON(`https://${host}.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbols.join(","))}&range=${range}&interval=${interval}`);
+      const out = new Map();
+      for (const r of j.spark?.result || []) {
+        const resp = r.response?.[0];
+        if (!resp?.meta) continue;
+        const closes = resp.indicators?.quote?.[0]?.close || [];
+        out.set(r.symbol, { meta: resp.meta, timestamps: resp.timestamp || [], closes });
+      }
+      if (!out.size) throw new Error("empty spark response");
+      return out;
     } catch (e) { lastErr = e; }
   }
   throw lastErr;
 }
 
+function quoteFrom({ meta: m, closes }) {
+  const c = closes.filter((x) => x != null);
+  const price = m.regularMarketPrice ?? c.at(-1);
+  const prev = m.chartPreviousClose ?? m.previousClose;
+  return { price, prev, change: price - prev, pct: ((price - prev) / prev) * 100, spark: c.slice(-78),
+    time: new Date((m.regularMarketTime || Date.now() / 1000) * 1000).toISOString(), currency: m.currency };
+}
+
 const lastAlertPct = {};
 async function poll() {
-  const res = await Promise.allSettled(INSTRUMENTS.map((i) => quote(i.sym)));
+  const data = await sparkBatch(INSTRUMENTS.map((i) => i.sym));
   let ok = 0;
-  res.forEach((r, idx) => {
-    const inst = INSTRUMENTS[idx];
-    if (r.status !== "fulfilled") return;
+  INSTRUMENTS.forEach((inst) => {
+    const d = data.get(inst.sym);
+    if (!d) return;
+    const r = { value: quoteFrom(d) };
     ok++;
     prices[inst.sym] = { ...inst, ...r.value };
     // Flag big oil moves (each further 2% step)
@@ -58,7 +72,7 @@ async function poll() {
     }
   });
   priceStatus.ok = ok > 0; priceStatus.lastPoll = new Date().toISOString();
-  priceStatus.error = ok ? null : (res[0].reason?.message || "all quotes failed");
+  priceStatus.error = ok ? null : "no quotes returned";
   bus.emit("prices", prices);
 }
 
@@ -96,7 +110,23 @@ export async function chartHistory(sym, range = "1d") {
   return data;
 }
 
+// Poll every minute; on errors (e.g. HTTP 429 from a shared hosting IP) back off up to 15 min,
+// keeping the last good prices on screen.
 export function startPrices() {
-  poll().then(() => log("prices", `${Object.keys(prices).length}/${INSTRUMENTS.length} instruments`)).catch((e) => log("prices", e.message));
-  setInterval(() => poll().catch((e) => log("prices", e.message)), 30_000);
+  let delay = 60_000, first = true;
+  const run = async () => {
+    try {
+      await poll();
+      if (first) log("prices", `${Object.keys(prices).length}/${INSTRUMENTS.length} instruments`);
+      delay = 60_000;
+    } catch (e) {
+      priceStatus.ok = Object.keys(prices).length > 0;
+      priceStatus.error = `${e.message.slice(0, 80)}; retrying in ${Math.round(delay / 60_000)} min`;
+      log("prices", priceStatus.error);
+      delay = Math.min(delay * 2, 15 * 60_000);
+    }
+    first = false;
+    setTimeout(run, delay);
+  };
+  run();
 }

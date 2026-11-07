@@ -3,7 +3,7 @@
 // and the spreads traders watch for supply stress: time spreads, Brent–WTI, and the 3-2-1 crack.
 import { bus, fetchJSON, log } from "./util.js";
 import { raiseAlert } from "./alerts.js";
-import { prices } from "./prices.js";
+import { prices, sparkBatch } from "./prices.js";
 
 const MONTH_CODES = "FGHJKMNQUVXZ";
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -11,15 +11,13 @@ const ROOTS = { brent: "BZ", wti: "CL" };
 
 export const curve = { brent: [], wti: [], spreads: {}, updated: null, error: null };
 
-async function contract(sym) {
-  const j = await fetchJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1mo`);
-  const r = j.chart?.result?.[0];
-  if (!r?.meta?.regularMarketPrice) throw new Error("no data");
-  const closes = (r.indicators?.quote?.[0]?.close || []).map((c, i) => [r.timestamp[i], c]).filter(([, c]) => c != null);
+function contractFrom({ meta, timestamps, closes: raw }) {
+  if (!meta?.regularMarketPrice) return null;
+  const closes = raw.map((c, i) => [timestamps[i], c]).filter(([, c]) => c != null);
   return {
     // chartPreviousClose is the close before the whole 1-month window, so take yesterday's daily bar instead
-    price: r.meta.regularMarketPrice, prev: closes.at(-2)?.[1] ?? null,
-    monthAgo: closes[0]?.[1] ?? null, closes, time: r.meta.regularMarketTime,
+    price: meta.regularMarketPrice, prev: closes.at(-2)?.[1] ?? null,
+    monthAgo: closes[0]?.[1] ?? null, closes, time: meta.regularMarketTime,
   };
 }
 
@@ -32,8 +30,9 @@ async function loadCurve(root, frontPrice) {
     const code = MONTH_CODES[d.getUTCMonth()], yy = String(d.getUTCFullYear()).slice(2);
     list.push({ sym: `${root}${code}${yy}.NYM`, label: `${MONTH_NAMES[d.getUTCMonth()]} ${yy}` });
   }
-  const res = await Promise.allSettled(list.map((c) => contract(c.sym)));
-  let out = list.map((c, i) => (res[i].status === "fulfilled" ? { ...c, ...res[i].value } : null)).filter(Boolean);
+  // One request for all 18 contracts (shared hosting IPs get rate-limited on per-symbol calls)
+  const data = await sparkBatch(list.map((c) => c.sym), "1mo", "1d");
+  let out = list.map((c) => { const d = data.get(c.sym); const v = d && contractFrom(d); return v ? { ...c, ...v } : null; }).filter(Boolean);
   // Stale = no trade in the last 5 days (expired)
   out = out.filter((c) => Date.now() / 1000 - c.time < 5 * 86400);
   if (frontPrice) {
