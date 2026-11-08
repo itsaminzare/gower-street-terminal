@@ -835,3 +835,59 @@ iframe.livemap { filter: invert(.9) hue-rotate(180deg) brightness(.92) contrast(
   .idea .act { flex-wrap: wrap; }
   #ask-form input { font-size: 16px; } /* 16px stops iPhones zooming in when the box is tapped */
 }
+
+/* ============================================================================================
+   OVERVIEW: chokepoint risk banner, desk tile, first-visit guide, map loading states
+   ============================================================================================ */
+#riskbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.25fr); gap: 1px; flex-shrink: 0;
+  background: var(--line); border-bottom: 1px solid var(--line); }
+.rk-tile { all: unset; box-sizing: border-box; display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 10px 6px 12px;
+  background: var(--panel); cursor: pointer; position: relative; font: 11px/1.35 var(--ui); color: var(--text-2); }
+.rk-tile::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--up); }
+.rk-tile.elevated::before { background: var(--warn); } .rk-tile.high::before { background: var(--crit); }
+.rk-tile.rk-desk::before { background: var(--accent); }
+.rk-tile:hover { background: var(--panel-2); }
+.rk-tile:focus-visible { outline: 1px solid var(--accent); outline-offset: -1px; }
+.rk-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.rk-name { font-weight: 600; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk-lvl { flex-shrink: 0; font: 700 9.5px var(--ui); letter-spacing: .8px; padding: 1px 5px; color: #0d1013; background: var(--up); }
+.elevated .rk-lvl { background: var(--warn); } .high .rk-lvl { background: var(--crit); color: #fff; }
+.rk-desk .rk-lvl { background: #1d3550; color: #cfe6ff; } .rk-desk .rk-lvl.ok { background: #173b2a; color: #9be3bd; }
+.rk-desk .rk-lvl.halted { background: var(--crit); color: #fff; }
+.rk-desk.waiting { background: #1a1c12; }
+.rk-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rk-line b { font-family: var(--font); }
+.high .rk-line b.down { font-size: 12px; }
+.map-panel.rk-flash { outline: 2px solid var(--accent); outline-offset: -2px; transition: outline-color .3s; }
+
+/* first-visit guide: a cut-out spotlight and a card */
+.gd-hole { position: fixed; z-index: 5000; pointer-events: none; box-shadow: 0 0 0 9999px rgba(4, 6, 9, .72);
+  outline: 2px solid var(--accent); }
+.gd-card { position: fixed; z-index: 5001; background: #161b22; border: 1px solid #2f3a48; border-top: 3px solid var(--accent);
+  padding: 12px 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, .55); font: 12.5px/1.5 var(--ui); color: var(--text); }
+.gd-step { color: var(--muted); font-size: 10.5px; letter-spacing: 1px; }
+.gd-title { font-size: 15px; font-weight: 600; margin: 2px 0 6px; color: #fff; }
+.gd-text { color: var(--text-2); }
+.gd-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; gap: 8px; }
+.gd-btns span { display: flex; gap: 6px; }
+.gd-btns button { height: 26px; padding: 0 12px; font-size: 12px; }
+.gd-btns .gd-next.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.gd-skip { background: none !important; border-color: transparent !important; color: var(--muted) !important; }
+#guide-btn { color: var(--text); border-color: #3d4b5e; }
+
+/* maps: a quiet loading state instead of an empty grey box */
+.leaflet-container { background: #0b0f14 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='20'%3E%3Ctext x='80' y='14' fill='%235b6573' font-family='Segoe UI,Arial' font-size='12' text-anchor='middle'%3ELoading map%E2%80%A6%3C/text%3E%3C/svg%3E") center no-repeat; }
+iframe.livemap { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='20'%3E%3Ctext x='90' y='14' fill='%23404a57' font-family='Segoe UI,Arial' font-size='12' text-anchor='middle'%3ELoading live map%E2%80%A6%3C/text%3E%3C/svg%3E");
+  background-position: center; background-repeat: no-repeat; }
+
+@media (max-width: 1200px) {
+  #riskbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #riskbar .rk-desk { grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  #riskbar { grid-template-columns: 1fr 1fr; }
+  .rk-tile { padding: 6px 8px 7px 10px; }
+  .rk-top { flex-wrap: wrap; row-gap: 2px; }
+  .rk-line { white-space: normal; }
+  .gd-card { left: 12px !important; right: 12px; width: auto !important; top: auto !important; bottom: 12px; }
+}
