@@ -20,8 +20,8 @@
   // ---------------------------------------------------------------- clock
   // World clocks — IANA zones handle DST automatically (Washington, London)
   const CITIES = [
-    ["WASHINGTON", "America/New_York"], ["LONDON", "Europe/London"], ["RIYADH", "Asia/Riyadh"],
-    ["SANA'A", "Asia/Aden"], ["TEHRAN", "Asia/Tehran"], ["ABU DHABI", "Asia/Dubai"],
+    ["ABU DHABI", "Asia/Dubai"], ["LONDON", "Europe/London"], ["RIYADH", "Asia/Riyadh"],
+    ["SANA'A", "Asia/Aden"], ["TEHRAN", "Asia/Tehran"], ["WASHINGTON", "America/New_York"],
   ];
   const fmt = Object.fromEntries(CITIES.map(([c, tz]) => [c, {
     time: new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }),
