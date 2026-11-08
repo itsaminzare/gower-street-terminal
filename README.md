@@ -57,6 +57,18 @@ The model contributes judgement only: direction, probability, horizon and the ev
 
 Paper trading only: no code path can place an order.
 
+### Risk controls and data
+
+| | |
+|---|---|
+| **The agent may do alone** | Read the live data, write the brief, answer questions, and *propose* paper trades. |
+| **Code enforces, whatever the agent says** | Prices, costs, expected value and every risk limit: 1% of book per trade, 3% open, 2% per risk group, one position per instrument, positive EV after costs, confidence capped at 25 points over the historical base rate, stops outside normal noise. A trade that fails any check is blocked. |
+| **Needs a human** | Opening every trade (Approve / Reject), closing it, and the kill switch (halt, or halt and flatten). Unapproved proposals lapse after 60 minutes, and approval is refused if the price has drifted. Every action by the agent, the server or a person is in the audit log, and each trade links to the exact inputs the agent saw. |
+| **Where each model runs** | Google Gemini (`gemini-3.8-flash`) runs in Google's cloud, called through the Gemini API from the terminal's server (Render, Singapore). No model runs in the visitor's browser. Anthropic Claude is an optional alternative, switched off on the public site. |
+| **What user data leaves the device** | No accounts, no cookies, no personal data collected. Questions typed into Ask go to the server and on to the Gemini API to be answered. The server sees visitors' IP addresses only to apply rate limits, and records approvals under a short one-way hash of the IP, never the address itself. Display preferences stay in the browser's local storage. |
+
+Benchmarks are declared up front: cash, buy-and-hold over the same window, and a naive "buy the headline" rule, all after the same trading costs.
+
 ## Evidence
 
 All results are after trading costs and measured out of sample, where each call may only use earlier incidents. Samples are small and the figures are stated as such.
