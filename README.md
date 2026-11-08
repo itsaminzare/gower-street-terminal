@@ -16,11 +16,21 @@ Built by **Mohammadamin Zare** at University College London. The idea came from 
 ## Demo
 
 <p align="center">
-  <a href="docs/gower-street-demo.mp4">
-    <img src="docs/demo-preview.gif" alt="Gower Street Terminal demo preview" width="800">
+  <a href="docs/gower-street-promo.mp4">
+    <img src="docs/promo.webp" alt="Gower Street Terminal in 35 seconds" width="900">
   </a><br>
-  <b><a href="docs/gower-street-demo.mp4">▶ Watch the full demo (1 min 33 s)</a></b>
+  <b><a href="docs/gower-street-promo.mp4">▶ Watch in full HD (35 s)</a></b>
 </p>
+
+## User manual
+
+<a href="docs/Gower-Street-Terminal-Manual.pdf"><img src="docs/manual-cover.png" alt="Getting started on Gower Street Terminal" width="200" align="right"></a>
+
+**[Getting started on Gower Street Terminal](docs/Gower-Street-Terminal-Manual.pdf)** (PDF, 16 pages) walks through every part of the screen: the risk banner, ship maps, incident alerts, the AI trade desk and its risk limits, the news and official feeds, each tool, a quick reference and the evidence.
+
+It can also be downloaded inside the terminal from the **Manual** button in the top menu.
+
+<br clear="right">
 
 ---
 

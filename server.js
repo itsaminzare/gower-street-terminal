@@ -75,7 +75,7 @@ for (const ev of ["vessels", "vessel-removed", "alert", "news", "social", "offic
 bus.on("flows", () => broadcast("flows-updated", { updated: fl.flowsStatus.updated }));
 setInterval(() => broadcast("status", status()), 10_000);
 
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json" };
+const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".pdf": "application/pdf", ".png": "image/png", ".webp": "image/webp" };
 const json = (res, code, obj) => { res.writeHead(code, { "Content-Type": "application/json" }); res.end(JSON.stringify(obj)); };
 const readBody = (req) => new Promise((ok, fail) => {
   let b = ""; req.on("data", (c) => { b += c; if (b.length > 200_000) req.destroy(); });

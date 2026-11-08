@@ -156,6 +156,12 @@
   help.addEventListener("click", start);
   $("#tools").append(help);
 
+  // The user manual (PDF), opened in a new tab where it can be read or saved
+  const manual = document.createElement("button");
+  manual.id = "manual-btn"; manual.textContent = "Manual"; manual.title = "Download the user manual (PDF)";
+  manual.addEventListener("click", () => window.open("/manual.pdf", "_blank", "noopener"));
+  $("#tools").append(manual);
+
   let seen = false; try { seen = localStorage.getItem(KEY) === "done"; } catch { /* private mode */ }
   if (!seen && !/[?&]noguide/.test(location.search)) {
     // Wait for the first data so the banner exists and the layout has settled
