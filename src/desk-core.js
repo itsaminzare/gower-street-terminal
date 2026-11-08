@@ -72,7 +72,8 @@ export function priceIdea(raw, entry) {
   const rr = tgtDist / stopDist, costR = costAbs / stopDist;
   // Binary approximation between target and stop, with the round-trip cost charged either way
   const evNet = p * (rr - costR) - (1 - p) * (1 + costR);
-  return { entry: r2(entry), stop: r2(entry - dir * stopDist), target: r2(entry + dir * tgtDist), stopDist, tgtDist, costAbs,
+  return { instrument: raw.instrument, direction: raw.direction, unit: inst?.unit,
+    entry: r2(entry), stop: r2(entry - dir * stopDist), target: r2(entry + dir * tgtDist), stopDist, tgtDist, costAbs,
     rr: r2(rr), costR: Math.round(costR * 1000) / 1000, evNet: r2(evNet), probability: r2(p),
     horizonDays: clamp(Math.round(+raw.horizon_days || 5), 1, 30), riskPct: r2(clamp(+raw.risk_pct || 0.5, 0.05, 5)),
     formula: `EV = p×(R:R − cost) − (1−p)×(1 + cost) = ${p.toFixed(2)}×(${rr.toFixed(2)} − ${costR.toFixed(3)}) − ${(1 - p).toFixed(2)}×(1 + ${costR.toFixed(3)}) = ${evNet.toFixed(2)}R` };
