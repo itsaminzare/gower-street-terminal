@@ -13,6 +13,15 @@ A real-time maritime-risk terminal for the world's oil chokepoints: the **Strait
 
 Built by **Mohammadamin Zare** at University College London. The idea came from a simple question: when a tanker is hit in the Persian Gulf, what should a trader actually do, and how would they know whether they were right?
 
+## Demo
+
+<p align="center">
+  <a href="docs/gower-street-demo.mp4">
+    <img src="docs/demo-preview.gif" alt="Gower Street Terminal demo preview" width="800">
+  </a><br>
+  <b><a href="docs/gower-street-demo.mp4">▶ Watch the full demo (1 min 33 s)</a></b>
+</p>
+
 ---
 
 ## What it does
