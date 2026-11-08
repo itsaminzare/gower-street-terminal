@@ -4,18 +4,18 @@
 // the trade maths and the risk checks. The AI only supplies judgement; every number below is computed here.
 
 export const INSTRUMENTS = {
-  BRENT: { label: "Brent crude (ICE, front month)", unit: "%", research: "BRENT", cost: 0.05 },
-  WTI: { label: "WTI crude (NYMEX, front month)", unit: "%", research: "WTI", cost: 0.05 },
-  BRENT_WTI: { label: "Brent–WTI spread", unit: "$/bbl", research: "BRENT_WTI", cost: 0.04 },
-  CRACK_321: { label: "3-2-1 crack spread (refining margin)", unit: "$/bbl", research: "CRACK", cost: 0.12 },
-  ULSD: { label: "ULSD diesel (NYMEX)", unit: "%", research: "ULSD", cost: 0.08 },
-  RBOB: { label: "RBOB gasoline (NYMEX)", unit: "%", research: "RBOB", cost: 0.08 },
-  TTF: { label: "Dutch TTF gas", unit: "%", research: null, cost: 0.15 },
-  HENRY_HUB: { label: "Henry Hub gas", unit: "%", research: null, cost: 0.1 },
-  GOLD: { label: "Gold", unit: "%", research: "GOLD", cost: 0.03 },
-  FRO: { label: "Frontline (crude tankers, NYSE)", unit: "%", research: "FRO", cost: 0.12 },
-  DHT: { label: "DHT Holdings (VLCCs, NYSE)", unit: "%", research: "DHT", cost: 0.15 },
-  STNG: { label: "Scorpio Tankers (product tankers, NYSE)", unit: "%", research: "STNG", cost: 0.12 },
+  BRENT: { label: "Brent crude (ICE, front month)", unit: "%", research: "BRENT", cost: 0.05, factor: "crude_products" },
+  WTI: { label: "WTI crude (NYMEX, front month)", unit: "%", research: "WTI", cost: 0.05, factor: "crude_products" },
+  BRENT_WTI: { label: "Brent–WTI spread", unit: "$/bbl", research: "BRENT_WTI", cost: 0.04, factor: "crude_products" },
+  CRACK_321: { label: "3-2-1 crack spread (refining margin)", unit: "$/bbl", research: "CRACK", cost: 0.12, factor: "crude_products" },
+  ULSD: { label: "ULSD diesel (NYMEX)", unit: "%", research: "ULSD", cost: 0.08, factor: "crude_products" },
+  RBOB: { label: "RBOB gasoline (NYMEX)", unit: "%", research: "RBOB", cost: 0.08, factor: "crude_products" },
+  TTF: { label: "Dutch TTF gas", unit: "%", research: null, cost: 0.15, factor: "gas" },
+  HENRY_HUB: { label: "Henry Hub gas", unit: "%", research: null, cost: 0.1, factor: "gas" },
+  GOLD: { label: "Gold", unit: "%", research: "GOLD", cost: 0.03, factor: "gold" },
+  FRO: { label: "Frontline (crude tankers, NYSE)", unit: "%", research: "FRO", cost: 0.12, factor: "tankers" },
+  DHT: { label: "DHT Holdings (VLCCs, NYSE)", unit: "%", research: "DHT", cost: 0.15, factor: "tankers" },
+  STNG: { label: "Scorpio Tankers (product tankers, NYSE)", unit: "%", research: "STNG", cost: 0.12, factor: "tankers" },
 };
 export const ANALOGUES = ["tanker-attack", "seizure", "shipping-disruption", "supply-attack", "state-strike", "none"];
 const FAMILY = { "tanker-attack": "shipping", seizure: "shipping", "shipping-disruption": "shipping", "supply-attack": "escalation", "state-strike": "escalation" };
@@ -24,6 +24,7 @@ const FAMILY = { "tanker-attack": "shipping", seizure: "shipping", "shipping-dis
 export const DEFAULT_LIMITS = {
   maxRiskPerTrade: 1.0,   // % of book lost if the stop is hit
   maxOpenRisk: 3.0,       // % of book at risk across all open trades
+  maxFactorRisk: 2.0,     // % of book at risk in any one factor
   maxIdeasPerRun: 3,
   minEvidence: 1,         // named sources the idea must cite
   minNetEV: 0,            // expected value in R after costs must exceed this
@@ -98,6 +99,9 @@ export function riskChecks({ raw, priced, br, open, limits = DEFAULT_LIMITS, hal
   add(`Risk per trade ≤ ${limits.maxRiskPerTrade}% of book`, priced.riskPct <= limits.maxRiskPerTrade, `${priced.riskPct}%`);
   const openRisk = open.reduce((s, i) => s + (i.riskPct || 0), 0);
   add(`Open risk ≤ ${limits.maxOpenRisk}% of book`, openRisk + priced.riskPct <= limits.maxOpenRisk, `${r2(openRisk)}% open + ${priced.riskPct}% = ${r2(openRisk + priced.riskPct)}%`);
+  const factor = INSTRUMENTS[raw.instrument]?.factor;
+  const factorRisk = open.filter((i) => factor && INSTRUMENTS[i.instrument]?.factor === factor).reduce((s, i) => s + (i.riskPct || 0), 0);
+  add(`Factor risk ≤ ${limits.maxFactorRisk}% of book`, factorRisk + priced.riskPct <= limits.maxFactorRisk, `${factor}: ${r2(factorRisk)}% open + ${priced.riskPct}% = ${r2(factorRisk + priced.riskPct)}%`);
   add(`Expected value after costs > ${limits.minNetEV}R`, priced.evNet > limits.minNetEV, priced.formula);
   const nEv = (raw.evidence || []).filter((e) => String(e).trim().length > 8).length;
   add(`Cites ≥ ${limits.minEvidence} source`, nEv >= limits.minEvidence, `${nEv} cited`);
