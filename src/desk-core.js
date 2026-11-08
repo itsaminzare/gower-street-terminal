@@ -28,6 +28,7 @@ export const DEFAULT_LIMITS = {
   maxIdeasPerRun: 3,
   minEvidence: 1,         // named sources the idea must cite
   minNetEV: 0,            // expected value in R after costs must exceed this
+  minStopSd: 0.5,         // minimum stop distance, in standard deviations of normal moves over the trade's horizon
   maxProbOverBase: 0.25,  // AI probability may not exceed the historical hit rate by more than this (when a base rate exists)
   proposalTTLmin: 60,     // a proposal not approved within this window lapses (prices move)
   maxDriftStops: 0.5,     // approval refused if price moved more than this many stop-distances since the proposal
@@ -110,6 +111,13 @@ export function riskChecks({ raw, priced, br, open, limits = DEFAULT_LIMITS, hal
     add(`Probability within ${limits.maxProbOverBase * 100} pts of the base rate`, gap <= limits.maxProbOverBase,
       `AI ${Math.round(priced.probability * 100)}% vs history ${Math.round(br.hitRate * 100)}% (${br.familyStat.wins}/${br.familyStat.n} ${br.family} events)`);
   } else add("Base rate available", false, br?.reason || "no analogue", false);
+  if (br?.baseline?.sd != null) {
+    const stopDistUnit = priced.unit === "%" ? (priced.stopDist / priced.entry) * 100 : priced.stopDist;
+    const minStop = limits.minStopSd * br.baseline.sd;
+    const u = priced.unit === "%" ? "%" : priced.unit ? ` ${priced.unit}` : "";
+    add(`Stop distance ≥ ${limits.minStopSd} baseline s.d.`, stopDistUnit >= minStop,
+      `${r2(stopDistUnit)}${u} vs min ${r2(minStop)}${u} (${r2(stopDistUnit / br.baseline.sd)} s.d., baseline ${br.baseline.sd}${u})`);
+  } else add("Baseline available", false, "no baseline exists", false);
   if (demo) add("Live AIS data", false, "AIS feed is SIMULATED (demo mode): vessel signals carry no information", false);
   const blocking = checks.filter((c) => c.hard && !c.pass);
   return { checks, pass: blocking.length === 0, blocking: blocking.map((c) => c.name) };
