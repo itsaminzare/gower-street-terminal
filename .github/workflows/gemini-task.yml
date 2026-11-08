@@ -14,6 +14,11 @@ on:
         description: "What should Gemini change?"
         required: true
         type: string
+      base:
+        description: "Branch to start from and target with the PR (for stacking tasks)"
+        required: false
+        default: main
+        type: string
   issues:
     types: [labeled]
 
@@ -43,6 +48,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ steps.app.outputs.token || github.token }}
+          ref: ${{ inputs.base || github.event.repository.default_branch }}
 
       - name: Build the prompt
         id: task
@@ -82,6 +88,7 @@ jobs:
           TITLE: ${{ steps.task.outputs.title }}
           SUMMARY: ${{ steps.gemini.outputs.summary }}
           ISSUE: ${{ github.event.issue.number }}
+          BASE: ${{ inputs.base || github.event.repository.default_branch }}
         run: |
           git reset -q -- .gemini 2>/dev/null || true
           git clean -fdq -- .gemini 2>/dev/null || true
@@ -106,4 +113,4 @@ jobs:
           git push -q origin "$BRANCH"
           BODY="Written by **Google Gemini** via the Gemini CLI GitHub Action. Review before merging."$'\n\n'"### Gemini's summary"$'\n'"${SUMMARY}"
           [ -n "$ISSUE" ] && BODY="${BODY}"$'\n\n'"Closes #${ISSUE}"
-          gh pr create --head "$BRANCH" --title "Gemini: ${TITLE}" --body "$BODY"
+          gh pr create --base "$BASE" --head "$BRANCH" --title "Gemini: ${TITLE}" --body "$BODY"
