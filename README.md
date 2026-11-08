@@ -55,9 +55,9 @@ All results are after trading costs and measured out of sample, where each call 
 |---|---|
 | Next-day Brent direction after an incident | 5 of 14 correct (p = 0.91): no edge |
 | Fading escalation over 20 trading days | 9 of 14 correct; +1.3% per incident against −2.6% for buy-and-hold (90% CI of the edge: +0.5% to +7.5%) |
-| The AI desk itself, given only what was known each day | 8 trades, 2 profitable, −1.7% of book in total; it missed its benchmarks by buying after the news |
+| The AI desk itself (Gemini), given only what was known each day | 39 trades, 19 profitable, +0.14% of book in total (90% CI per incident −0.26% to +0.28%): flat, with no evidence of skill. An earlier run on Claude Haiku took 8 trades and lost 1.7% |
 
-The last result is why the desk is built around human approval and hard limits rather than autonomy. The **Research** window in the app shows the full study, and **Red Sea 2024** replays the 2023–24 crisis day by day.
+The last result is why the desk is built around human approval and hard limits rather than autonomy: the model adds judgement, not a proven edge. The **Research** window in the app shows the full study, and **Red Sea 2024** replays the 2023–24 crisis day by day.
 
 Reproduce with `node scripts/build-research.mjs` and `node scripts/agent-backtest.mjs`.
 
@@ -98,7 +98,8 @@ Copy `.env.example` to `.env` to add keys. All are optional; any panel without i
 | Key | Enables |
 |---|---|
 | `AISSTREAM_API_KEY` | Live ship positions (free at aisstream.io) |
-| `ANTHROPIC_API_KEY` | AI analyst, chat and trade desk |
+| `GEMINI_API_KEY` + `AI_PROVIDER=gemini` | AI analyst, chat and trade desk (Google Gemini, the default on the live site) |
+| `ANTHROPIC_API_KEY` + `AI_PROVIDER=claude` | The same features on Anthropic Claude instead |
 | `NTFY_TOPIC` or `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Phone alerts |
 | `X_BEARER_TOKEN`, `BSKY_HANDLE` / `BSKY_APP_PASSWORD`, `TELEGRAM_CHANNELS` | Social sources |
 
@@ -106,7 +107,7 @@ Copy `.env.example` to `.env` to add keys. All are optional; any panel without i
 
 ## Data sources
 
-Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real-price windows in the kit's hidden test, not endorsed by Binance) · IMF PortWatch (chokepoint transits) · aisstream.io (AIS) · US Treasury OFAC SDN list (sanctions) · named news outlets, Google News and Reddit (headlines, credited) · VesselFinder (embedded map) · Esri and OpenSeaMap (map tiles) · Anthropic Claude (analysis). Each is used under its provider's terms; see [NOTICE.md](NOTICE.md).
+Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real-price windows in the kit's hidden test, not endorsed by Binance) · IMF PortWatch (chokepoint transits) · aisstream.io (AIS) · US Treasury OFAC SDN list (sanctions) · named news outlets, Google News and Reddit (headlines, credited) · VesselFinder (embedded map) · Esri and OpenSeaMap (map tiles) · Google Gemini (analysis; Anthropic Claude as an alternative). Each is used under its provider's terms; see [NOTICE.md](NOTICE.md).
 
 ## Limitations
 
@@ -118,7 +119,8 @@ Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real
 ## Credits
 
 - **Google Gemini** (`gemini-3.8-flash`, via the Gemini API) powers the live AI analyst, chat and trade-desk proposals on the public site.
-- **Anthropic Claude** is supported as a switchable alternative (`AI_PROVIDER=claude`) and was used for the historical agent backtest.
+- **Gemini as a contributor:** Gemini reviewed the trade-desk core ([`docs/gemini-review.md`](docs/gemini-review.md)) and takes coding tasks through the [Gemini CLI GitHub Action](.github/workflows/gemini-task.yml): add the label `gemini` to an issue, or run the *Gemini task* workflow, and Gemini opens a pull request for a human to review.
+- **Anthropic Claude** is supported as a switchable alternative (`AI_PROVIDER=claude`); an earlier version of the agent backtest ran on Claude Haiku.
 
 ## Licence
 

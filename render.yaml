@@ -23,11 +23,17 @@ services:
       # Secrets: Render asks for these when you create the service. Never commit them.
       - key: AISSTREAM_API_KEY
         sync: false
-      - key: ANTHROPIC_API_KEY
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY   # only needed with AI_PROVIDER=claude
         sync: false
       - key: NTFY_TOPIC
         sync: false
       # Cheap AI + cost controls for a public site (change any time in the Render dashboard)
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
       - key: ANALYST_MODEL
         value: claude-haiku-5-5
       - key: ANALYST_INTERVAL_MIN

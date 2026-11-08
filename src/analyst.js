@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Mohammadamin Zare, University College London. All rights reserved. See LICENSE.
-// AI desk analyst: Claude reads the live picture (AIS stats, alerts, credited headlines,
+// AI desk analyst: the model (Google Gemini by default, or Claude) reads the live picture (AIS stats, alerts, credited headlines,
 // social chatter, prices) and writes a structured desk brief.
 import Anthropic from "@anthropic-ai/sdk";
 import { geminiStructured, geminiStream } from "./gemini.js";
@@ -182,7 +182,8 @@ export async function ask(question, history, onText) {
 }
 
 export function startAnalyst(env) {
-  PROVIDER = (env.AI_PROVIDER || "claude").trim().toLowerCase() === "gemini" ? "gemini" : "claude";
+  const want = (env.AI_PROVIDER || (env.GEMINI_API_KEY ? "gemini" : "claude")).trim().toLowerCase();
+  PROVIDER = want === "gemini" ? "gemini" : "claude";
   if (PROVIDER === "gemini") {
     GEMINI = { key: (env.GEMINI_API_KEY || "").trim(), model: (env.GEMINI_MODEL || "gemini-3.8-flash").trim() };
     if (!GEMINI.key) { analyst.error = "AI_PROVIDER=gemini but GEMINI_API_KEY is not set"; return; }

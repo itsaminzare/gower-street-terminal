@@ -1,0 +1,109 @@
+# Gives Google Gemini (via the official Gemini CLI action) a coding task and opens its work as a pull request.
+# Trigger: Actions tab -> "Gemini task" -> Run workflow (type the task), or add the label "gemini" to an issue
+# (the issue's title and body become the task). A human reviews and merges every PR.
+#
+# Needs: repo secret GEMINI_API_KEY. Optional: repo variable GEMINI_MODEL.
+# Identity: commits are authored by github-actions[bot] unless a GitHub App is configured
+# (repo variable APP_ID + secret APP_PRIVATE_KEY), in which case they are authored by that app's bot account.
+name: Gemini task
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What should Gemini change?"
+        required: true
+        type: string
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: gemini-task
+  cancel-in-progress: false
+
+jobs:
+  task:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'gemini'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Mint app token (optional)
+        id: app
+        if: vars.APP_ID != ''
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app.outputs.token || github.token }}
+
+      - name: Build the prompt
+        id: task
+        env:
+          TASK: ${{ inputs.task }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          if [ -n "$TASK" ]; then T="$TASK"; else T="$ISSUE_TITLE"$'\n\n'"$ISSUE_BODY"; fi
+          {
+            echo "Read GEMINI.md first and follow its rules."
+            echo "Make the smallest correct change to this repository that completes the task below, editing files directly."
+            echo "Do not touch secrets, .env files, data snapshots or anything unrelated. When done, reply with a short summary of what you changed and why."
+            echo
+            echo "TASK:"
+            echo "$T"
+          } > "$RUNNER_TEMP/prompt.txt"
+          echo "title=$(printf '%s' "$T" | head -n1 | cut -c1-72)" >> "$GITHUB_OUTPUT"
+          { echo "prompt<<GEMINI_PROMPT_EOF"; cat "$RUNNER_TEMP/prompt.txt"; echo "GEMINI_PROMPT_EOF"; } >> "$GITHUB_OUTPUT"
+
+      - name: Run Gemini CLI
+        id: gemini
+        uses: google-github-actions/run-gemini-cli@v0
+        env:
+          GEMINI_CLI_TRUST_WORKSPACE: "true"
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          gemini_model: ${{ vars.GEMINI_MODEL }}
+          settings: |-
+            { "tools": { "exclude": ["run_shell_command"] } }
+          prompt: ${{ steps.task.outputs.prompt }}
+
+      - name: Open a pull request with Gemini's change
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token || github.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          TITLE: ${{ steps.task.outputs.title }}
+          SUMMARY: ${{ steps.gemini.outputs.summary }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          git reset -q -- .gemini 2>/dev/null || true
+          git clean -fdq -- .gemini 2>/dev/null || true
+          git checkout -q -- .gemini 2>/dev/null || true
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "Gemini made no file changes."
+            [ -n "$ISSUE" ] && gh issue comment "$ISSUE" --body "Gemini ran but made no file changes."$'\n\n'"$SUMMARY"
+            exit 0
+          fi
+          if [ -n "$APP_SLUG" ]; then
+            ID=$(gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id)
+            git config user.name "${APP_SLUG}[bot]"
+            git config user.email "${ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          fi
+          BRANCH="gemini/task-${GITHUB_RUN_ID}"
+          git checkout -q -b "$BRANCH"
+          git add -A
+          git commit -q -m "Gemini: ${TITLE}" -m "Change written by Google Gemini (Gemini CLI, run-gemini-cli action) in workflow run ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}."
+          git push -q origin "$BRANCH"
+          BODY="Written by **Google Gemini** via the Gemini CLI GitHub Action. Review before merging."$'\n\n'"### Gemini's summary"$'\n'"${SUMMARY}"
+          [ -n "$ISSUE" ] && BODY="${BODY}"$'\n\n'"Closes #${ISSUE}"
+          gh pr create --head "$BRANCH" --title "Gemini: ${TITLE}" --body "$BODY"

@@ -9,7 +9,7 @@ It uses the following third-party software, services and content. They are not c
 |---|---|---|---|
 | [Lightweight Charts](https://github.com/tradingview/lightweight-charts) v4.2.0 | TradingView, Inc. | Apache License 2.0 | Detailed price charts. The TradingView attribution logo shown on charts must be kept. |
 | [Leaflet](https://leafletjs.com) v1.9.4 | Volodymyr Agafonkin and contributors | BSD 2-Clause | Interactive maps |
-| [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | Anthropic, PBC | MIT | AI desk analyst |
+| [Anthropic TypeScript SDK](https://github.com/anthropics/anthropic-sdk-typescript) | Anthropic, PBC | MIT | AI desk analyst (optional Claude provider) |
 | [Node.js](https://nodejs.org) | OpenJS Foundation | MIT | Server runtime |
 
 Apache 2.0 notice for Lightweight Charts: Copyright (c) TradingView, Inc. Licensed under the Apache License, Version 2.0; you may not use that component except in compliance with the License. A copy is available at http://www.apache.org/licenses/LICENSE-2.0.
@@ -27,7 +27,7 @@ Apache 2.0 notice for Lightweight Charts: Copyright (c) TradingView, Inc. Licens
 | Chokepoint transit data | Sources: UN Global Platform; IMF PortWatch (portwatch.imf.org) | IMF terms (imf.org/external/terms.htm); citation as given |
 | Sanctioned vessels | U.S. Department of the Treasury, OFAC Specially Designated Nationals list | U.S. government public data |
 | Scenario defaults | U.S. EIA (World Oil Transit Chokepoints), IEA | Public estimates, cited in the tool |
-| AI analysis | Anthropic (Claude API) | Anthropic usage policies |
+| AI analysis | Google (Gemini API); optionally Anthropic (Claude API) | Gemini API Additional Terms of Service; Anthropic usage policies |
 
 ## News, official statements and social media
 

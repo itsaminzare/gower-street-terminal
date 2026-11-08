@@ -8,19 +8,22 @@
 // Benchmarks: cash (0), buy-and-hold Brent over the same 20 trading days, and a naive "buy the headline" rule.
 // Caveat, stated in the output: the model may know how these events played out (training-data contamination),
 // so the live paper record is the only truly unseen test.
-//   node scripts/agent-backtest.mjs            (needs ANTHROPIC_API_KEY in .env; ~20 model calls)
+//   node scripts/agent-backtest.mjs            (AI_PROVIDER=gemini needs GEMINI_API_KEY, claude needs ANTHROPIC_API_KEY; ~20 model calls)
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
+import { geminiStructured } from "../src/gemini.js";
 import { INSTRUMENTS, DEFAULT_LIMITS, baseRate, priceIdea, riskChecks, systemPrompt, SCHEMA, r2 } from "../src/desk-core.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 try { process.loadEnvFile(path.join(ROOT, ".env")); } catch { /* optional */ }
 const research = JSON.parse(fs.readFileSync(path.join(ROOT, "public-data", "research.json"), "utf8"));
 const { daily } = JSON.parse(fs.readFileSync(path.join(ROOT, "public-data", "prices-daily.json"), "utf8"));
-const MODEL = (process.env.ANALYST_MODEL || "claude-haiku-5-5").trim();
-const client = new Anthropic();
+const PROVIDER = (process.env.AI_PROVIDER || "gemini").trim().toLowerCase();
+const MODEL = PROVIDER === "gemini" ? (process.env.GEMINI_MODEL || "gemini-3.8-flash").trim() : (process.env.ANALYST_MODEL || "claude-haiku-5-5").trim();
+const client = PROVIDER === "gemini" ? null : new Anthropic();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const series = Object.fromEntries(Object.entries(daily).map(([k, rows]) => [k, rows]));
 const idxOnOrBefore = (k, d) => { const s = series[k]; let i = -1; for (let j = 0; j < s.length && s[j][0] <= d; j++) i = j; return i; };
@@ -80,6 +83,13 @@ No open trades. No live vessel data is available for this exercise.
 
 Point-in-time event study (incidents before ${asOf} only):
 ${JSON.stringify(pointInTimeStudy(asOf))}`;
+  if (PROVIDER === "gemini") {
+    // Free tier is rate-limited: retry politely on 429/503
+    for (let attempt = 0; ; attempt++) {
+      try { return await geminiStructured({ key: process.env.GEMINI_API_KEY, model: MODEL, system: systemPrompt({ asOf }), user, schema: SCHEMA, maxTokens: 8000 }); }
+      catch (err) { if (attempt >= 4 || !/429|503|overloaded|quota|rate/i.test(err.message)) throw err; await sleep(15000 * (attempt + 1)); }
+    }
+  }
   const stream = /haiku/.test(MODEL)
     ? client.messages.stream({ model: MODEL, max_tokens: 8000, output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } }, system: systemPrompt({ asOf }), messages: [{ role: "user", content: user }] })
     : client.beta.messages.stream({ model: MODEL, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", max_tokens: 8000, output_config: { effort: "medium", format: { type: "json_schema", schema: SCHEMA } }, system: systemPrompt({ asOf }), messages: [{ role: "user", content: user }] });
@@ -133,7 +143,7 @@ const naiveBook = rows.filter((r) => !r.error).map((r) => r.benchmark.naiveBookP
 const wins = taken.filter((t) => t.R > 0).length;
 const brier = taken.length ? r2(taken.reduce((s, t) => s + (t.probability - (t.R > 0 ? 1 : 0)) ** 2, 0) / taken.length) : null;
 const summary = {
-  built: new Date().toISOString(), model, events: rows.length, eventsTraded: rows.filter((r) => r.trades.some((t) => t.taken)).length,
+  built: new Date().toISOString(), provider: PROVIDER, model, events: rows.length, eventsTraded: rows.filter((r) => r.trades.some((t) => t.taken)).length,
   ideas: rows.reduce((s, r) => s + r.trades.length, 0), trades: taken.length, blockedByRisk: rows.reduce((s, r) => s + r.trades.filter((t) => t.taken === false).length, 0),
   wins, hitRate: taken.length ? r2(wins / taken.length) : null, pHits: taken.length ? binomP(wins, taken.length) : null,
   avgR: r2(mean(taken.map((t) => t.R))), avgRCI90: ci(taken.map((t) => t.R)), totalR: r2(taken.reduce((s, t) => s + t.R, 0)), brier,
