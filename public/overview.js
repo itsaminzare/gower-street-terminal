@@ -100,6 +100,7 @@
     { sel: "#p-hormuz", title: "Live ships", text: "Tankers and other ships in the Strait of Hormuz and Bab el-Mandeb, from live AIS. Alerts flag ships going dark, GPS jamming and sanctioned tankers." },
     { sel: "#p-analyst", title: "AI trade desk", text: "Google Gemini proposes paper trades. Code prices each one, checks it against hard risk limits and logs every step. Nothing trades until a human approves." },
     { sel: '#tools [data-open="research"]', title: "The evidence", text: "Research tests the ideas on 20 past incidents, out of sample and after costs, including where they failed. Red Sea 2024 replays the last crisis day by day." },
+    { sel: "#manual-btn", title: "The manual", text: "Download the full user manual (PDF) at any time from the Manual button in the top menu." },
   ];
   const KEY = "gst-guide-v1";
   let step = 0, hole = null, card = null;
