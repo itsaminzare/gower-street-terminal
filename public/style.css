@@ -112,9 +112,9 @@ body { display: flex; flex-direction: column; }
 .ph .filters button { padding: 0 5px; font-size: 10.5px; white-space: nowrap; }
 .live { color: var(--crit); font-size: 10px; animation: blink 1.4s infinite; }
 @keyframes blink { 50% { opacity: .35; } }
-.list, .body { overflow-y: auto; flex: 1; min-height: 0; }
-.list::-webkit-scrollbar, .body::-webkit-scrollbar { width: 6px; }
-.list::-webkit-scrollbar-thumb, .body::-webkit-scrollbar-thumb { background: #333; }
+.list, .body, .ask-log { overflow-y: auto; flex: 1; min-height: 0; }
+.list::-webkit-scrollbar, .body::-webkit-scrollbar, .ask-log::-webkit-scrollbar { width: 6px; }
+.list::-webkit-scrollbar-thumb, .body::-webkit-scrollbar-thumb, .ask-log::-webkit-scrollbar-thumb { background: #333; }
 .maps { flex: 1; min-height: 0; position: relative; }
 .map { position: absolute; inset: 0; background: #0b0f14; }
 .map[hidden] { display: block !important; visibility: hidden; }
