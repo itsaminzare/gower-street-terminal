@@ -117,7 +117,10 @@
     if (!hole) return;
     const el = $(STEPS[step].sel); if (!el) return;
     const r = el.getBoundingClientRect(), pad = 4;
-    Object.assign(hole.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+    // Keep the outline inside the window, so a target at the very edge (the top menu) still shows all four sides
+    const L = Math.max(2, r.left - pad), T = Math.max(2, r.top - pad);
+    const R = Math.min(innerWidth - 2, r.right + pad), B = Math.min(innerHeight - 2, r.bottom + pad);
+    Object.assign(hole.style, { left: `${L}px`, top: `${T}px`, width: `${R - L}px`, height: `${B - T}px` });
     const cw = Math.min(340, innerWidth - 24), ch = card.offsetHeight || 150;
     let x = Math.min(Math.max(12, r.left), innerWidth - cw - 12);
     let y = r.bottom + 12;
