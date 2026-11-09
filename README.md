@@ -64,8 +64,8 @@ Paper trading only: no code path can place an order.
 | **The agent may do alone** | Read the live data, write the brief, answer questions, and *propose* paper trades. |
 | **Code enforces, whatever the agent says** | Prices, costs, expected value and every risk limit: 1% of book per trade, 3% open, 2% per risk group, one position per instrument, positive EV after costs, confidence capped at 25 points over the historical base rate, stops outside normal noise. A trade that fails any check is blocked. |
 | **Needs a human** | Opening every trade (Approve / Reject), closing it, and the kill switch (halt, or halt and flatten). Unapproved proposals lapse after 60 minutes, and approval is refused if the price has drifted. Every action by the agent, the server or a person is in the audit log, and each trade links to the exact inputs the agent saw. |
-| **Where each model runs** | Google Gemini (`gemini-3.8-flash`) runs in Google's cloud, called through the Gemini API from the terminal's server (Render, Singapore). No model runs in the visitor's browser. Anthropic Claude is an optional alternative, switched off on the public site. |
-| **What user data leaves the device** | No accounts, no cookies, no personal data collected. Questions typed into Ask go to the server and on to the Gemini API to be answered. The server sees visitors' IP addresses only to apply rate limits, and records approvals under a short one-way hash of the IP, never the address itself. Display preferences stay in the browser's local storage. |
+| **Where each model runs** | Anthropic Claude (Haiku 5.5 on the public site; set by `ANALYST_MODEL`) runs in Anthropic's cloud, called through the Claude API from the terminal's server (Render, Singapore). No model runs in the visitor's browser. |
+| **What user data leaves the device** | No accounts, no cookies, no personal data collected. Questions typed into Ask go to the server and on to the Claude API to be answered. The server sees visitors' IP addresses only to apply rate limits, and records approvals under a short one-way hash of the IP, never the address itself. Display preferences stay in the browser's local storage. |
 
 Benchmarks are declared up front: cash, buy-and-hold over the same window, and a naive "buy the headline" rule, all after the same trading costs.
 
@@ -77,7 +77,7 @@ All results are after trading costs and measured out of sample, where each call 
 |---|---|
 | Next-day Brent direction after an incident | 5 of 14 correct (p = 0.91): no edge |
 | Fading escalation over 20 trading days | 9 of 14 correct; +1.3% per incident against −2.6% for buy-and-hold (90% CI of the edge: +0.5% to +7.5%) |
-| The AI desk itself (Gemini), given only what was known each day | 39 trades, 19 profitable, +0.14% of book in total (90% CI per incident −0.26% to +0.28%): flat, with no evidence of skill. An earlier run on Claude Haiku took 8 trades and lost 1.7% |
+| The AI desk itself (Claude Haiku), given only what was known each day | Traded 4 of the 20 incidents, 1 trade profitable, −0.67% of book in total (90% CI per incident −0.09% to +0.02%): a small loss and no evidence of skill. The risk checks blocked 4 further ideas |
 
 The last result is why the desk is built around human approval and hard limits rather than autonomy: the model adds judgement, not a proven edge. The **Research** window in the app shows the full study, and **Red Sea 2024** replays the 2023–24 crisis day by day.
 
@@ -120,8 +120,7 @@ Copy `.env.example` to `.env` to add keys. All are optional; any panel without i
 | Key | Enables |
 |---|---|
 | `AISSTREAM_API_KEY` | Live ship positions (free at aisstream.io) |
-| `GEMINI_API_KEY` + `AI_PROVIDER=gemini` | AI analyst, chat and trade desk (Google Gemini, the default on the live site) |
-| `ANTHROPIC_API_KEY` + `AI_PROVIDER=claude` | The same features on Anthropic Claude instead |
+| `ANTHROPIC_API_KEY` | AI analyst, chat and trade desk (Anthropic Claude; `ANALYST_MODEL` picks the model) |
 | `NTFY_TOPIC` or `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` | Phone alerts |
 | `X_BEARER_TOKEN`, `BSKY_HANDLE` / `BSKY_APP_PASSWORD`, `TELEGRAM_CHANNELS` | Social sources |
 
@@ -129,7 +128,7 @@ Copy `.env.example` to `.env` to add keys. All are optional; any panel without i
 
 ## Data sources
 
-Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real-price windows in the kit's hidden test, not endorsed by Binance) · IMF PortWatch (chokepoint transits) · aisstream.io (AIS) · US Treasury OFAC SDN list (sanctions) · named news outlets, Google News and Reddit (headlines, credited) · VesselFinder (embedded map) · Esri and OpenSeaMap (map tiles) · Google Gemini (analysis; Anthropic Claude as an alternative). Each is used under its provider's terms; see [NOTICE.md](NOTICE.md).
+Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real-price windows in the kit's hidden test, not endorsed by Binance) · IMF PortWatch (chokepoint transits) · aisstream.io (AIS) · US Treasury OFAC SDN list (sanctions) · named news outlets, Google News and Reddit (headlines, credited) · VesselFinder (embedded map) · Esri and OpenSeaMap (map tiles) · Anthropic Claude (analysis). Each is used under its provider's terms; see [NOTICE.md](NOTICE.md).
 
 ## Limitations
 
@@ -140,9 +139,7 @@ Yahoo Finance and CNBC (delayed prices) · Binance Vision (CC BY-NC-SA 4.0; real
 
 ## Credits
 
-- **Google Gemini** (`gemini-3.8-flash`, via the Gemini API) powers the live AI analyst, chat and trade-desk proposals on the public site.
-- **Gemini as a contributor:** Gemini reviewed the trade-desk core ([`docs/gemini-review.md`](docs/gemini-review.md)) and takes coding tasks through the [Gemini CLI GitHub Action](.github/workflows/gemini-task.yml): add the label `gemini` to an issue, or run the *Gemini task* workflow, and Gemini opens a pull request for a human to review.
-- **Anthropic Claude** is supported as a switchable alternative (`AI_PROVIDER=claude`); an earlier version of the agent backtest ran on Claude Haiku.
+- **Anthropic Claude** (via the Claude API) powers the live AI analyst, chat and trade-desk proposals, and the agent backtest.
 
 ## Licence
 

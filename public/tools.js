@@ -239,7 +239,7 @@
         <tr><td>OFAC sanctioned vessels</td><td>${pill(st.sanctions?.ok, `${st.sanctions?.vessels || 0} vessels`)}</td><td>US Treasury SDN list, refreshed daily</td></tr>
         <tr><td>IMF PortWatch transits</td><td>${pill(st.flows?.ok, st.flows?.ok ? "OK" : "WAITING")}</td><td>${esc(st.flows?.error || "")}</td></tr>
         <tr><td>Futures curve</td><td>${pill(st.curve?.ok, st.curve?.ok ? "OK" : "WAITING")}</td><td>${esc(st.prices?.source || "Yahoo Finance")}, delayed</td></tr>
-        <tr><td>AI analyst + chat</td><td>${pill(st.analyst?.enabled, st.analyst?.enabled ? "ON" : "OFF")}</td><td><code>ANTHROPIC_API_KEY</code>, or <code>GEMINI_API_KEY</code> + <code>AI_PROVIDER=gemini</code></td></tr>
+        <tr><td>AI analyst + chat</td><td>${pill(st.analyst?.enabled, st.analyst?.enabled ? "ON" : "OFF")}</td><td><code>ANTHROPIC_API_KEY</code></td></tr>
       </table></div>`;
     $("#notify-test")?.addEventListener("click", async () => {
       $("#notify-res").textContent = "sending…";

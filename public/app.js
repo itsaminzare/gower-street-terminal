@@ -560,7 +560,7 @@
     if (a.running) html += `<div class="muted" style="margin-bottom:6px">Updating…</div>`;
     if (!b) {
       html += a.enabled ? `<div class="empty">First brief will appear shortly after startup.</div>` :
-        `<div class="empty">AI analyst is off.<br><br>${esc(a.error || "")}<br><br>Add <code>ANTHROPIC_API_KEY</code>, or <code>GEMINI_API_KEY</code> with <code>AI_PROVIDER=gemini</code>, to <code>.env</code> and restart.</div>`;
+        `<div class="empty">AI analyst is off.<br><br>${esc(a.error || "")}<br><br>Add <code>ANTHROPIC_API_KEY</code> to <code>.env</code> and restart.</div>`;
       if (a.error && a.enabled) html += `<div style="color:#ff6b6b">${esc(a.error)}</div>`;
       el.innerHTML = html; return;
     }

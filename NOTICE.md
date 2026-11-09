@@ -27,7 +27,7 @@ Apache 2.0 notice for Lightweight Charts: Copyright (c) TradingView, Inc. Licens
 | Chokepoint transit data | Sources: UN Global Platform; IMF PortWatch (portwatch.imf.org) | IMF terms (imf.org/external/terms.htm); citation as given |
 | Sanctioned vessels | U.S. Department of the Treasury, OFAC Specially Designated Nationals list | U.S. government public data |
 | Scenario defaults | U.S. EIA (World Oil Transit Chokepoints), IEA | Public estimates, cited in the tool |
-| AI analysis | Google (Gemini API); optionally Anthropic (Claude API) | Gemini API Additional Terms of Service; Anthropic usage policies |
+| AI analysis | Anthropic (Claude API) | Anthropic usage policies and Commercial Terms |
 
 ## News, official statements and social media
 

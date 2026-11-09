@@ -1,8 +1,7 @@
 // Copyright (c) 2026 Mohammadamin Zare, University College London. All rights reserved. See LICENSE.
-// AI desk analyst: the model (Google Gemini by default, or Claude) reads the live picture (AIS stats, alerts, credited headlines,
+// AI desk analyst: Claude reads the live picture (AIS stats, alerts, credited headlines,
 // social chatter, prices) and writes a structured desk brief.
 import Anthropic from "@anthropic-ai/sdk";
-import { geminiStructured, geminiStream } from "./gemini.js";
 import { bus, log } from "./util.js";
 import { zoneStats, aisStatus, vessels, dailyTransits } from "./ais.js";
 import { getAlerts } from "./alerts.js";
@@ -97,12 +96,9 @@ function streamRequest(params) {
   if (/haiku/.test(MODEL)) return client.messages.stream({ model: MODEL, ...params });
   return client.beta.messages.stream({ model: MODEL, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default", ...params });
 }
-// AI_PROVIDER=gemini routes every call (brief, chat, trade desk) to Google Gemini; prompts, schemas and checks are unchanged
-let PROVIDER = "claude", GEMINI = { key: "", model: "gemini-3.8-flash" };
 /** One structured (JSON-schema) completion, used by the brief and the trade desk. Returns the parsed object + model id. */
 export async function structuredCall({ system, user, schema, maxTokens = 16000 }) {
   if (!analyst.enabled) throw new Error(analyst.error || "AI analyst is not configured");
-  if (PROVIDER === "gemini") return geminiStructured({ key: GEMINI.key, model: GEMINI.model, system, user, schema, maxTokens });
   const stream = streamRequest({
     max_tokens: maxTokens,
     output_config: { effort: "medium", format: { type: "json_schema", schema } },
@@ -165,10 +161,6 @@ export async function ask(question, history, onText) {
     ...history.slice(-10).map((m) => ({ role: m.role === "assistant" ? "assistant" : "user", content: String(m.content).slice(0, 6000) })),
     { role: "user", content: `Live desk snapshot (${new Date().toISOString()}):\n${snap}\n\nBrent front-month intraday, 15-min closes (UTC): ${JSON.stringify(brent)}\n\nQuestion: ${question}` },
   ];
-  if (PROVIDER === "gemini") {
-    const { text } = await geminiStream({ key: GEMINI.key, model: GEMINI.model, system: ASK_SYSTEM, messages: msgs, maxTokens: 8000, onText });
-    return text;
-  }
   const stream = streamRequest({
     max_tokens: 8000,
     output_config: { effort: "medium" },
@@ -182,21 +174,13 @@ export async function ask(question, history, onText) {
 }
 
 export function startAnalyst(env) {
-  const want = (env.AI_PROVIDER || (env.GEMINI_API_KEY ? "gemini" : "claude")).trim().toLowerCase();
-  PROVIDER = want === "gemini" ? "gemini" : "claude";
-  if (PROVIDER === "gemini") {
-    GEMINI = { key: (env.GEMINI_API_KEY || "").trim(), model: (env.GEMINI_MODEL || "gemini-3.8-flash").trim() };
-    if (!GEMINI.key) { analyst.error = "AI_PROVIDER=gemini but GEMINI_API_KEY is not set"; return; }
-    MODEL = GEMINI.model;
-  } else {
-    if (!env.ANTHROPIC_API_KEY) { analyst.error = "Set ANTHROPIC_API_KEY to enable the AI analyst"; return; }
-    client = new Anthropic();
-    if (env.ANALYST_MODEL) MODEL = env.ANALYST_MODEL.trim();
-  }
+  if (!env.ANTHROPIC_API_KEY) { analyst.error = "Set ANTHROPIC_API_KEY to enable the AI analyst"; return; }
+  client = new Anthropic();
+  if (env.ANALYST_MODEL) MODEL = env.ANALYST_MODEL.trim();
   analyst.enabled = true;
   analyst.model = MODEL;
-  analyst.provider = PROVIDER;
-  log("analyst", `using ${PROVIDER === "gemini" ? "Google Gemini" : "Anthropic Claude"}: ${MODEL}`);
+  analyst.provider = "claude";
+  log("analyst", `using Anthropic Claude: ${MODEL}`);
   const minutes = Math.max(5, Number(env.ANALYST_INTERVAL_MIN) || 15);
   if (Number(env.ANALYST_DAILY_MAX) > 0) runs.max = Number(env.ANALYST_DAILY_MAX);
   const debounceMs = Math.max(1, Number(env.ANALYST_ALERT_DEBOUNCE_MIN) || 5) * 60_000;

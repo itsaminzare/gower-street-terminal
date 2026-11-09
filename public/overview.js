@@ -66,7 +66,7 @@
     const state = d.halted ? `<span class="rk-lvl halted">HALTED</span>` : d.enabled ? `<span class="rk-lvl ok">ON · HUMAN APPROVAL</span>` : `<span class="rk-lvl">OFF</span>`;
     const rec = sc.closed ? `${sc.closed} closed, ${sc.totalR > 0 ? "+" : ""}${sc.totalR}R` : "no closed trades yet";
     return `<button class="rk-tile rk-desk${waiting ? " waiting" : ""}" data-desk="1" title="Open the AI trade desk: proposals, risk checks, decision traces and the audit log">
-      <span class="rk-top"><span class="rk-name">AI trade desk · Gemini</span>${state}</span>
+      <span class="rk-top"><span class="rk-name">AI trade desk · Claude</span>${state}</span>
       <span class="rk-line">${waiting ? `<b class="warn">${waiting} proposal${waiting > 1 ? "s" : ""} awaiting approval</b>` : "No proposals waiting"} · open risk ${sc.openRisk ?? 0}%</span>
       <span class="rk-line muted">Paper record: ${rec}</span>
     </button>`;
@@ -98,7 +98,7 @@
   const STEPS = [
     { sel: "#riskbar", title: "Risk at a glance", text: "Each tile rates one oil chokepoint from IMF transit data, live ship tracking and incident alerts. Hover for the reasons; click to jump the map there." },
     { sel: "#p-hormuz", title: "Live ships", text: "Tankers and other ships in the Strait of Hormuz and Bab el-Mandeb, from live AIS. Alerts flag ships going dark, GPS jamming and sanctioned tankers." },
-    { sel: "#p-analyst", title: "AI trade desk", text: "Google Gemini proposes paper trades. Code prices each one, checks it against hard risk limits and logs every step. Nothing trades until a human approves." },
+    { sel: "#p-analyst", title: "AI trade desk", text: "Claude proposes paper trades. Code prices each one, checks it against hard risk limits and logs every step. Nothing trades until a human approves." },
     { sel: '#tools [data-open="research"]', title: "The evidence", text: "Research tests the ideas on 20 past incidents, out of sample and after costs, including where they failed. Red Sea 2024 replays the last crisis day by day." },
     { sel: "#manual-btn", title: "The manual", text: "Download the full user manual (PDF) at any time from the Manual button in the top menu." },
   ];
