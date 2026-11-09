@@ -576,8 +576,9 @@ button.on { background: #2a3442; color: #fff; border-color: #3d4b5e; }
 /* Logo: deep green plate with a set Garamond wordmark; "Terminal" set small beside it */
 .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; flex-shrink: 0; margin-left: -10px; height: 34px; }
 .brand:hover { text-decoration: none; }
-.lg-box { display: inline-flex; align-items: center; height: 34px; padding: 0 16px; background: #355E4B; }
-.lg-word { font: 600 13.5px/1 "Source Serif 4", Georgia, "Times New Roman", serif; letter-spacing: .2em; text-transform: uppercase; color: #F2EFE6; padding-top: 1px; }
+.lg-box { display: inline-flex; align-items: center; height: 34px; padding: 0 14px; background: #0f4a37;
+  box-shadow: inset 0 0 0 1px #1e6650, inset 0 0 0 3px #0f4a37, inset 0 0 0 4px rgba(243, 239, 228, .18); }
+.lg-word { font: 600 15px/1 "Cormorant Garamond", Garamond, Georgia, "Times New Roman", serif; letter-spacing: 2.6px; text-transform: uppercase; color: #f3efe4; padding-top: 1px; }
 .lg-term { font: 600 11px var(--ui); letter-spacing: 2.6px; text-transform: uppercase; color: #dfe4ea; white-space: nowrap; }
 #topbar #demo-banner { font: 600 10px var(--ui); letter-spacing: 1px; background: transparent !important; color: var(--warn) !important; border: 1px solid #5a4a1c; padding: 1px 6px; animation: none; }
 #tools { gap: 0; }
@@ -780,7 +781,7 @@ iframe.livemap { filter: invert(.9) hue-rotate(180deg) brightness(.92) contrast(
   #topbar { display: flex; flex-wrap: wrap; height: auto; padding: 0; gap: 0; row-gap: 0; }
   .brand { order: 1; margin-left: 0; height: 36px; }
   .lg-box { height: 36px; padding: 0 10px; }
-  .lg-word { font-size: 12px; letter-spacing: .18em; }
+  .lg-word { font-size: 13px; letter-spacing: 2px; }
   .lg-term { font-size: 9px; letter-spacing: 2.5px; }
   #topbar .right { order: 2; margin-left: auto; gap: 8px; padding-right: 8px; flex-wrap: nowrap; }
   #topbar .right .tog:has(#sound) { display: none; }
